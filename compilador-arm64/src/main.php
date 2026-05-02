@@ -20,20 +20,27 @@ require_once "ARM64Generator.php";
 // ];
 
 $ir = [
+    new AssignConst("i", 0),
 
-    // función
-    new FuncStart("suma", ["a", "b"]),
-        new Add("t1", "a", "b"),
-        new ReturnInstr("t1"),
-    new FuncEnd(),
+    new Label("L0"),
+    new IfGoto("i", ">=", 3, "L1"),
 
-    // main
-    new AssignConst("x", 2),
-    new AssignConst("y", 3),
+        new AssignConst("j", 0),
 
-    new CallInstr("suma", ["x", "y"], "res"),
+        new Label("L2"),
+        new IfGoto("j", ">=", 2, "L3"),
 
-    new PrintInt("res"),
+            new PrintInt("j"),
+
+            new Add("j", "j", 1),
+
+        new GotoInstr("L2"),
+        new Label("L3"),
+
+        new Add("i", "i", 1),
+
+    new GotoInstr("L0"),
+    new Label("L1"),
 ];
 
 

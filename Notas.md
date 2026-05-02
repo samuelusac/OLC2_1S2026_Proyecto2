@@ -3,3 +3,4 @@
 3. Manejamos etiquetas
 4. Manejamos saltos condicionales
 5. Manejamos print de enteros
+6. Manejo de while

@@ -2,266 +2,237 @@
 
 class ARM64Generator
 {
-
     private $code = [];
+    private $data = [];
+
     private $offsets = [];
     private $nextOffset = 0;
-    private $data = [];
-    private $stringCounter = 0;
-    private $inFunction = false;
-    private $currentFunction = null;
 
-    private function addString($value)
-    {
-        // // $label = "msg_" . $this->stringCounter++;
-        // // $this->data[] = "$label: .asciz \"$value\"";
-        // // return $label;
-        // Escapar caracteres especiales
-        $escaped = addslashes($value);
+    private $labelCounter = 0;
+    private $loopStack = [];
 
-        // Convertir saltos de línea reales a \n
-        $escaped = str_replace("\n", "\\n", $escaped);
+    private $indentLevel = 0;
 
-        $label = "msg_" . $this->stringCounter++;
-        $this->data[] = "$label: .asciz \"$escaped\"";
-
-        return $label;
-    }
-
+    // =========================
+    // EMIT
+    // =========================
     private function emit($line)
     {
-        $this->code[] = $line;
+        $trim = trim($line);
+
+        if (str_ends_with($trim, ":")) {
+            $this->code[] = $trim;
+            return;
+        }
+
+        $indent = str_repeat("    ", $this->indentLevel);
+        $this->code[] = $indent . $trim;
     }
 
     private function comment($text)
     {
-        $this->code[] = "// " . $text;
+        $indent = str_repeat("    ", $this->indentLevel);
+        $this->code[] = $indent . "// " . $text;
     }
 
-    private function getOffset($temp)
+    private function indent() { $this->indentLevel++; }
+    private function dedent() { $this->indentLevel = max(0, $this->indentLevel - 1); }
+
+    // =========================
+    // MEMORY
+    // =========================
+    private function getOffset($var)
     {
-        if (!isset($this->offsets[$temp])) {
-            $this->offsets[$temp] = $this->nextOffset;
+        if (!isset($this->offsets[$var])) {
+            $this->offsets[$var] = $this->nextOffset;
             $this->nextOffset += 8;
         }
-        return $this->offsets[$temp];
+        return $this->offsets[$var];
     }
 
+    // =========================
+    // STRING TABLE
+    // =========================
+    private function addString($value)
+    {
+        $label = "msg_" . count($this->data);
+        $escaped = addslashes(str_replace("\n", "\\n", $value));
+
+        $this->data[] = "$label: .asciz \"$escaped\"";
+        return $label;
+    }
+
+    // =========================
+    // MAIN GENERATOR
+    // =========================
     public function generate($irList)
     {
-
-        // Header
+        // HEADER
         $this->emit(".global _start");
+        $this->emit(".text");
         $this->emit("_start:");
+        $this->indent();
 
-        // Reservar stack
         $this->emit("sub sp, sp, #1024");
+        $this->emit("mov x19, sp");
 
-        $this->comment("===== INICIO PROGRAMA =====");
+        $this->comment("=== PROGRAM START ===");
 
         foreach ($irList as $instr) {
 
-            if ($instr instanceof PrintStr) {
+            switch (get_class($instr)) {
 
-                $this->comment("--- print  ---");
+                // ================= ASSIGN CONST =================
+                case AssignConst::class:
+                    $this->comment("{$instr->target} = {$instr->value}");
 
-                $label = $this->addString($instr->value);
-                $len = strlen($instr->value);
+                    $o = $this->getOffset($instr->target);
+                    $this->emit("mov x0, #{$instr->value}");
+                    $this->emit("str x0, [x19, #$o]");
+                    break;
 
-                $this->emit("mov x0, #1");       // stdout
-                $this->emit("ldr x1, =$label");  // buffer
-                $this->emit("mov x2, #$len");    // length
-                $this->emit("mov x8, #64");      // write syscall
-                $this->emit("svc #0");
+                // ================= ADD =================
+                case Add::class:
+                    $this->comment("{$instr->result} = {$instr->left} + {$instr->right}");
 
-                $this->comment("--- end print ---");
-            } elseif ($instr instanceof AssignConst) {
-                $this->comment("--- {$instr->target} = {$instr->value} ---");
-                $offset = $this->getOffset($instr->target);
+                    $o1 = $this->getOffset($instr->left);
+                    $o3 = $this->getOffset($instr->result);
 
-                $this->emit("mov x0, #{$instr->value}");
-                $this->emit("str x0, [sp, #$offset]");
-                $this->comment("--- end {$instr->target} ---");
-            } elseif ($instr instanceof Add) {
-                $this->comment("--- {$instr->result} = {$instr->left} + {$instr->right} ---");
-                $o1 = $this->getOffset($instr->left);
-                $o2 = $this->getOffset($instr->right);
-                $o3 = $this->getOffset($instr->result);
+                    $this->emit("ldr x0, [x19, #$o1]");
 
-                $this->emit("ldr x0, [sp, #$o1]");
-                $this->emit("ldr x1, [sp, #$o2]");
-                $this->emit("add x2, x0, x1");
-                $this->emit("str x2, [sp, #$o3]");
-                $this->comment("--- end {$instr->result} ---");
-            } elseif ($instr instanceof IfGoto) {
-                $this->comment("--- if {$instr->left} {$instr->op} {$instr->right} goto {$instr->label} ---");
-                $o1 = $this->getOffset($instr->left);
-                $o2 = $this->getOffset($instr->right);
+                    if (is_numeric($instr->right)) {
+                        $this->emit("mov x1, #{$instr->right}");
+                    } else {
+                        $o2 = $this->getOffset($instr->right);
+                        $this->emit("ldr x1, [x19, #$o2]");
+                    }
 
-                $this->emit("ldr x0, [sp, #$o1]");
-                $this->emit("ldr x1, [sp, #$o2]");
-                $this->emit("cmp x0, x1");
+                    $this->emit("add x2, x0, x1");
+                    $this->emit("str x2, [x19, #$o3]");
+                    break;
 
-                $jump = $this->mapOp($instr->op);
-                $this->emit("$jump {$instr->label}");
-                $this->comment("--- end if ---");
-            } elseif ($instr instanceof GotoInstr) {
-                $this->comment("--- goto {$instr->label} ---");
-                $this->emit("b {$instr->label}");
-            } elseif ($instr instanceof Label) {
-                $this->comment("--- label {$instr->name} ---");
-                $this->emit("{$instr->name}:");
-            } elseif ($instr instanceof PrintStr) {
+                // ================= PRINT INT =================
+                case PrintInt::class:
+                    $this->comment("print int {$instr->value}");
 
-                $label = "msg_" . count($this->code);
+                    $offset = $this->getOffset($instr->value);
+                    $id = $this->labelCounter++;
 
-                // sección de datos (simplificado)
-                $this->emit(".data");
-                $this->emit("$label: .asciz \"{$instr->value}\"");
-                $this->emit(".text");
+                    $loop = "conv_$id";
+                    $print = "print_$id";
+                    $zero = "zero_$id";
 
-                $this->emit("ldr x0, =$label"); // dirección
-                $this->emit("mov x1, x0");      // buffer
-                $this->emit("mov x2, #" . strlen($instr->value)); // tamaño
-                $this->emit("mov x0, #1");      // stdout
-                $this->emit("mov x8, #64");     // syscall write
-                $this->emit("svc #0");
-            } elseif ($instr instanceof PrintInt) {
+                    $this->emit("ldr x0, [x19, #$offset]");
+                    $this->emit("adr x1, int_buffer_end");
 
-                $this->comment("--- print_int {$instr->value} ---");
+                    $this->emit("cmp x0, #0");
+                    $this->emit("b.ne $loop");
 
-                $offset = $this->getOffset($instr->value);
+                    $this->emit("$zero:");
+                    $this->emit("mov x3, #48");
+                    $this->emit("strb w3, [x1, #-1]!");
+                    $this->emit("b $print");
 
-                $this->emit("ldr x0, [sp, #$offset]");
-                $this->emit("bl print_int");
+                    $this->emit("$loop:");
+                    $this->emit("mov x2, #10");
+                    $this->emit("udiv x4, x0, x2");
+                    $this->emit("msub x5, x4, x2, x0");
+                    $this->emit("add x5, x5, #48");
+                    $this->emit("strb w5, [x1, #-1]!");
+                    $this->emit("mov x0, x4");
+                    $this->emit("cbnz x0, $loop");
 
-                $this->comment("--- end print_int ---");
-            } elseif ($instr instanceof FuncStart) {
+                    $this->emit("$print:");
+                    $this->emit("mov x0, #1");
+                    $this->emit("mov x8, #64");
+                    $this->emit("svc #0");
 
-                $this->inFunction = true;
-                $this->currentFunction = $instr->name;
+                    // newline
+                    $this->emit("mov x0, #1");
+                    $this->emit("adr x1, newline");
+                    $this->emit("mov x2, #1");
+                    $this->emit("mov x8, #64");
+                    $this->emit("svc #0");
+                    break;
 
-                $this->offsets = [];
-                $this->nextOffset = 0;
+                // ================= LABEL =================
+                case Label::class:
+                    $this->emit($instr->name . ":");
+                    break;
 
-                $this->emit("");
-                $this->comment("===== FUNC {$instr->name} =====");
-                $this->emit("{$instr->name}:");
+                // ================= GOTO =================
+                case GotoInstr::class:
+                    $this->emit("b {$instr->label}");
+                    break;
 
-                // prologue
-                $this->emit("stp x29, x30, [sp, #-16]!");
-                $this->emit("mov x29, sp");
-                $this->emit("sub sp, sp, #128");
+                // ================= IF =================
+                case IfGoto::class:
+                    $this->comment("if {$instr->left} {$instr->op} {$instr->right}");
 
-                // guardar parámetros en stack
-                foreach ($instr->params as $i => $param) {
-                    $offset = $this->getOffset($param);
-                    $this->emit("str x$i, [sp, #$offset]   // param $param");
-                }
-            } elseif ($instr instanceof ReturnInstr) {
+                    $o1 = $this->getOffset($instr->left);
+                    $this->emit("ldr x0, [x19, #$o1]");
 
-                $this->comment("--- return {$instr->value} ---");
+                    if (is_numeric($instr->right)) {
+                        $this->emit("mov x1, #{$instr->right}");
+                    } else {
+                        $o2 = $this->getOffset($instr->right);
+                        $this->emit("ldr x1, [x19, #$o2]");
+                    }
 
-                $offset = $this->getOffset($instr->value);
+                    $this->emit("cmp x0, x1");
+                    $this->emit($this->mapOp($instr->op) . " {$instr->label}");
+                    break;
 
-                $this->emit("ldr x0, [sp, #$offset]");
+                // ================= BREAK =================
+                case BreakInstr::class:
+                    $loop = end($this->loopStack);
+                    $this->comment("break");
+                    $this->emit("b " . $loop["end"]);
+                    break;
 
-                // epilogue
-                $this->emit("add sp, sp, #128");
-                $this->emit("ldp x29, x30, [sp], #16");
-                $this->emit("ret");
+                // ================= CONTINUE =================
+                case ContinueInstr::class:
+                    $loop = end($this->loopStack);
+                    $this->comment("continue");
+                    $this->emit("b " . $loop["start"]);
+                    break;
 
-                $this->comment("===== END FUNC =====");
-            } elseif ($instr instanceof CallInstr) {
-
-                $this->comment("--- call {$instr->name} ---");
-
-                // pasar parámetros
-                foreach ($instr->args as $i => $arg) {
-                    $offset = $this->getOffset($arg);
-                    $this->emit("ldr x$i, [sp, #$offset]");
-                }
-
-                $this->emit("bl {$instr->name}");
-
-                // guardar retorno
-                if ($instr->result !== null) {
-                    $offset = $this->getOffset($instr->result);
-                    $this->emit("str x0, [sp, #$offset]");
-                }
-
-                $this->comment("--- end call ---");
+                default:
+                    throw new Exception("IR no soportado: " . get_class($instr));
             }
         }
 
-        $this->comment("===== FIN PROGRAMA =====");
-
-        // Exit
+        // EXIT
         $this->emit("mov x0, #0");
         $this->emit("mov x8, #93");
         $this->emit("svc #0");
 
-        $this->emit("");
-        $this->comment("===== print_int function =====");
-
-        $this->emit("print_int:");
-        $this->emit("stp x29, x30, [sp, #-16]!");
-        $this->emit("mov x29, sp");
-
-        // buffer simple en stack
-        $this->emit("sub sp, sp, #32");
-        $this->emit("mov x1, sp"); // buffer
-
-        // convertir número (x0) a string
-        $this->emit("mov x2, #0"); // index
-
-        $this->emit("convert_loop:");
-        $this->emit("mov x3, #10");
-        $this->emit("udiv x4, x0, x3");
-        $this->emit("msub x5, x4, x3, x0");
-        $this->emit("add x5, x5, #48"); // ASCII
-        $this->emit("strb w5, [x1, x2]");
-        $this->emit("add x2, x2, #1");
-        $this->emit("mov x0, x4");
-        $this->emit("cbz x0, convert_done");
-        $this->emit("b convert_loop");
-
-        $this->emit("convert_done:");
-
-        // imprimir (invertido, pero sirve para ahora)
-        $this->emit("mov x0, #1");
-        $this->emit("mov x2, x2");
-        $this->emit("mov x8, #64");
-        $this->emit("svc #0");
-
-        // limpiar
-        $this->emit("add sp, sp, #32");
-        $this->emit("ldp x29, x30, [sp], #16");
-        $this->emit("ret");
-
-        return $this->buildFinalCode();
+        return $this->build();
     }
 
-    private function buildFinalCode()
+    // =========================
+    // OUTPUT
+    // =========================
+    private function build()
     {
+        $out = [];
 
-        $final = [];
+        $out[] = ".data";
+        $out[] = "int_buffer: .space 32";
+        $out[] = "int_buffer_end:";
+        $out[] = "newline: .ascii \"\\n\"";
 
-        // DATA
-        if (!empty($this->data)) {
-            $final[] = ".data";
-            foreach ($this->data as $d) {
-                $final[] = $d;
-            }
+        foreach ($this->data as $d) {
+            $out[] = $d;
         }
 
-        // TEXT
-        $final[] = ".text";
+        $out[] = ".text";
+
         foreach ($this->code as $c) {
-            $final[] = $c;
+            $out[] = $c;
         }
 
-        return implode("\n", $final);
+        return implode("\n", $out);
     }
 
     private function mapOp($op)
@@ -273,7 +244,6 @@ class ARM64Generator
             "!=" => "b.ne",
             "<=" => "b.le",
             ">=" => "b.ge",
-            default => throw new Exception("Operador no soportado: $op")
         };
     }
 }
