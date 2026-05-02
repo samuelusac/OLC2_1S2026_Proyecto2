@@ -1,8 +1,6 @@
 <?php
 session_start();
 
-require_once 'core/Compiler.php';
-
 $action = $_POST['action'] ?? '';
 
 try {
@@ -17,28 +15,19 @@ try {
     }
 
     if ($action === 'compile') {
-
         $code = $_POST['code'] ?? '';
         $_SESSION['code'] = $code;
 
-        // Guardamos el código (clave para debug)
-        file_put_contents('storage/last_code.txt', $code);
-
-        $compiler = new Compiler();
-
-        $result = $compiler->prepare($code);
-
-        $_SESSION['output'] = $result['message'];
-        $_SESSION['errors'] = $result['errors'];
+        // 🔥 AQUÍ SIMULAMOS RESULTADO
+        $_SESSION['output'] = "Código recibido:\n\n" . $code;
     }
 
-    if ($action === 'clear_console') {
+    if ($action === 'clear') {
         $_SESSION['output'] = '';
-        $_SESSION['errors'] = [];
     }
 
 } catch (Throwable $e) {
-    echo "<pre style='color:red'>";
+    echo "<pre>";
     echo "ERROR PHP:\n";
     echo $e;
     echo "</pre>";

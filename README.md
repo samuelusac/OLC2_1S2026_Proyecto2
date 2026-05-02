@@ -7,7 +7,7 @@
 │
 ├── /core
 │   ├── Compiler.php          # Orquestador
-│   ├── AntlrRunner.php       # 🔥 Punto de integración con ANTLR
+│   ├── AntlrRunner.php       # Punto de integración con ANTLR
 │
 ├── /storage
 │   ├── last_code.txt         # Código enviado
