@@ -1,4 +1,6 @@
 <?php
+use Antlr\Antlr4\Runtime\InputStream;
+use Antlr\Antlr4\Runtime\CommonTokenStream;
 session_start();
 
 $action = $_POST['action'] ?? '';
@@ -18,8 +20,29 @@ try {
         $code = $_POST['code'] ?? '';
         $_SESSION['code'] = $code;
 
-        // 🔥 AQUÍ SIMULAMOS RESULTADO
-        $_SESSION['output'] = "Código recibido:\n\n" . $code;
+        try {
+
+            require_once __DIR__ . '/vendor/autoload.php';
+
+            // 👇 IMPORTANTE: rutas hacia tu parser
+            require_once __DIR__ . '/../compilador-arm64/src/generated/GolampiLexer.php';
+            require_once __DIR__ . '/../compilador-arm64/src/generated/GolampiParser.php';
+
+            
+
+            $input = InputStream::fromString($code);
+            $lexer = new GolampiLexer($input);
+            $tokens = new CommonTokenStream($lexer);
+            $parser = new GolampiParser($tokens);
+
+            $tree = $parser->program();
+
+            // 👇 Por ahora solo confirmamos que parseó
+            $_SESSION['output'] = "✅ Parse OK";
+
+        } catch (Throwable $e) {
+            $_SESSION['output'] = "❌ Error:\n" . $e->getMessage();
+        }
     }
 
     if ($action === 'clear') {
