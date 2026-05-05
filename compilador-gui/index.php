@@ -91,7 +91,7 @@ textarea { flex: 1; border: none; outline: none; padding: 5px; resize: none; }
         <button class="report-btn" type="button">Descargar Resultado</button>
         <button class="report-btn" type="button">Descargar Errores</button>
         <button class="report-btn" type="button">Tabla de Símbolos</button>
-
+        <button class="report-btn" type="button">Descargar ASM</button>
     </div>
 
 </div>
