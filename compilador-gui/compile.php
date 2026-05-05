@@ -24,21 +24,57 @@ try {
 
             require_once __DIR__ . '/vendor/autoload.php';
 
-            // 👇 IMPORTANTE: rutas hacia tu parser
-            require_once __DIR__ . '/../compilador-arm64/src/generated/GolampiLexer.php';
-            require_once __DIR__ . '/../compilador-arm64/src/generated/GolampiParser.php';
+            // tu listener (propio)
+            require_once __DIR__ . '/core/AntlrErrorListener.php';
 
-            
+            // 🔥 cargar TODO lo generado por ANTLR
+            $basePath = __DIR__ . '/../compilador-arm64/src/generated/';
+
+            // 1. Interfaces primero
+            require_once $basePath . 'GolampiListener.php';
+            require_once $basePath . 'GolampiVisitor.php';
+
+            // 2. Base classes
+            require_once $basePath . 'GolampiBaseListener.php';
+            require_once $basePath . 'GolampiBaseVisitor.php';
+
+            // 3. Lexer y Parser
+            require_once $basePath . 'GolampiLexer.php';
+            require_once $basePath . 'GolampiParser.php';
+
+
+
 
             $input = InputStream::fromString($code);
             $lexer = new GolampiLexer($input);
             $tokens = new CommonTokenStream($lexer);
             $parser = new GolampiParser($tokens);
 
+            // quitamos default listeners
+            $parser->removeErrorListeners();
+
+            // agregamos el nuestro
+            $errorListener = new AntlrErrorListener();
+            $parser->addErrorListener($errorListener);
+
             $tree = $parser->program();
 
-            // 👇 Por ahora solo confirmamos que parseó
-            $_SESSION['output'] = "✅ Parse OK";
+            // // 👇 Por ahora solo confirmamos que parseó
+            // $_SESSION['output'] = "✅ Parse OK";
+
+            if (!empty($errorListener->errors)) {
+
+                $output = "❌ Errores de sintaxis:\n\n";
+
+                foreach ($errorListener->errors as $err) {
+                    $output .= "Línea {$err['line']}, Col {$err['column']}: {$err['message']}\n";
+                }
+
+                $_SESSION['output'] = $output;
+
+            } else {
+                $_SESSION['output'] = "✅ Parse OK";
+            }
 
         } catch (Throwable $e) {
             $_SESSION['output'] = "❌ Error:\n" . $e->getMessage();
