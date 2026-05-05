@@ -42,6 +42,8 @@ try {
             require_once $basePath . 'GolampiLexer.php';
             require_once $basePath . 'GolampiParser.php';
 
+            require_once __DIR__ . '/../compilador-arm64/src/IRVisitor.php';
+
 
 
 
@@ -73,7 +75,11 @@ try {
                 $_SESSION['output'] = $output;
 
             } else {
-                $_SESSION['output'] = "✅ Parse OK";
+                // $_SESSION['output'] = "✅ Parse OK";
+                $visitor = new IRVisitor();
+                $ir = $visitor->visit($tree);
+
+                $_SESSION['output'] = json_encode($ir, JSON_PRETTY_PRINT);
             }
 
         } catch (Throwable $e) {
