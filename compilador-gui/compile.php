@@ -81,6 +81,8 @@ try {
                 // $_SESSION['output'] = "✅ Parse OK";
                 $visitor = new IRVisitor();
                 $ir = $visitor->visit($tree);
+                $symbols = $visitor->getSymbolTable();
+                $_SESSION['symbols'] = $symbols;
 
                 $_SESSION['output'] = json_encode($ir, JSON_PRETTY_PRINT);
             }

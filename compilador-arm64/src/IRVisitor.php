@@ -411,5 +411,10 @@ class IRVisitor extends GolampiBaseVisitor
             "type" => $ctx->type()->getText()
         ];
     }
+
+    public function getSymbolTable(): array
+    {
+        return $this->symbolTable->getAllSymbols();
+    }
 }
 

@@ -2,6 +2,7 @@
 
 class SymbolTable
 {
+    private array $allSymbols = [];
     private array $scopes = [];
 
     public function __construct()
@@ -28,6 +29,11 @@ class SymbolTable
         }
 
         $this->scopes[$current][$name] = $symbol;
+        $this->allSymbols[] = [
+            "name" => $name,
+            "scope" => $current,
+            ...$symbol
+        ];
     }
 
     public function lookup(string $name): ?array
@@ -45,5 +51,10 @@ class SymbolTable
     public function getScopes(): array
     {
         return $this->scopes;
+    }
+
+    public function getAllSymbols(): array
+    {
+        return $this->allSymbols;
     }
 }

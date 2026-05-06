@@ -169,14 +169,27 @@ $output = $_SESSION['output'] ?? '';
             </div>
 
             <!-- DERECHA -->
+            <!-- DERECHA -->
             <div class="right">
 
                 <b>Reportes</b><br><br>
 
-                <button class="report-btn" type="button">Descargar Resultado</button>
-                <button class="report-btn" type="button">Descargar Errores</button>
-                <button class="report-btn" type="button">Tabla de Símbolos</button>
-                <button class="report-btn" type="button">Descargar ASM</button>
+                <button class="report-btn" type="button">
+                    Descargar Resultado
+                </button>
+
+                <button class="report-btn" type="button">
+                    Descargar Errores
+                </button>
+
+                <button class="report-btn" type="button" onclick="window.location.href='download_symbols.php'">
+                    Tabla de Símbolos
+                </button>
+
+                <button class="report-btn" type="button">
+                    Descargar ASM
+                </button>
+
             </div>
 
         </div>
