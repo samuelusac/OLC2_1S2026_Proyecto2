@@ -9,7 +9,7 @@ program
     ;
 
 functionDecl
-    : 'func' 'main' '(' ')' block
+    : 'func' ID  '(' ')' block
     ;
 
 block
@@ -17,9 +17,32 @@ block
     ;
 
 statement
-    : printStmt
+    : varDecl
+    | shortVarDecl
+    | assignment
+    | printStmt
     ;
 
+varDecl
+    : 'var' ID type ('=' expr)?
+    ;
+
+shortVarDecl
+    : ID ':=' expr
+    ;
+    
+assignment
+    : ID '=' expr
+    ;
+
+type
+    : 'int32'
+    | 'float32'
+    | 'bool'
+    | 'string'
+    | 'rune'
+    ;
+    
 printStmt
     : 'fmt' '.' 'Println' '(' argumentList? ')' ';'?
     ;
@@ -33,7 +56,12 @@ argumentList
 // =====================
 
 expr
-    : literal
+    : expr '*' expr   # MulDiv
+    | expr '/' expr   # MulDiv
+    | expr '+' expr   # AddSub
+    | expr '-' expr   # AddSub
+    | '(' expr ')'    # Parens
+    | literal         # LiteralExpr
     ;
 
 literal

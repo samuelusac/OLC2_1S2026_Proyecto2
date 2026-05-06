@@ -48,6 +48,42 @@ interface GolampiVisitor extends ParseTreeVisitor
 	public function visitStatement(Context\StatementContext $context);
 
 	/**
+	 * Visit a parse tree produced by {@see GolampiParser::varDecl()}.
+	 *
+	 * @param Context\VarDeclContext $context The parse tree.
+	 *
+	 * @return mixed The visitor result.
+	 */
+	public function visitVarDecl(Context\VarDeclContext $context);
+
+	/**
+	 * Visit a parse tree produced by {@see GolampiParser::shortVarDecl()}.
+	 *
+	 * @param Context\ShortVarDeclContext $context The parse tree.
+	 *
+	 * @return mixed The visitor result.
+	 */
+	public function visitShortVarDecl(Context\ShortVarDeclContext $context);
+
+	/**
+	 * Visit a parse tree produced by {@see GolampiParser::assignment()}.
+	 *
+	 * @param Context\AssignmentContext $context The parse tree.
+	 *
+	 * @return mixed The visitor result.
+	 */
+	public function visitAssignment(Context\AssignmentContext $context);
+
+	/**
+	 * Visit a parse tree produced by {@see GolampiParser::type()}.
+	 *
+	 * @param Context\TypeContext $context The parse tree.
+	 *
+	 * @return mixed The visitor result.
+	 */
+	public function visitType(Context\TypeContext $context);
+
+	/**
 	 * Visit a parse tree produced by {@see GolampiParser::printStmt()}.
 	 *
 	 * @param Context\PrintStmtContext $context The parse tree.
@@ -66,13 +102,44 @@ interface GolampiVisitor extends ParseTreeVisitor
 	public function visitArgumentList(Context\ArgumentListContext $context);
 
 	/**
-	 * Visit a parse tree produced by {@see GolampiParser::expr()}.
+	 * Visit a parse tree produced by the `MulDiv` labeled alternative
+	 * in {@see GolampiParser::expr()}.
 	 *
-	 * @param Context\ExprContext $context The parse tree.
+	 * @param Context\MulDivContext $context The parse tree.
 	 *
 	 * @return mixed The visitor result.
 	 */
-	public function visitExpr(Context\ExprContext $context);
+	public function visitMulDiv(Context\MulDivContext $context);
+
+	/**
+	 * Visit a parse tree produced by the `AddSub` labeled alternative
+	 * in {@see GolampiParser::expr()}.
+	 *
+	 * @param Context\AddSubContext $context The parse tree.
+	 *
+	 * @return mixed The visitor result.
+	 */
+	public function visitAddSub(Context\AddSubContext $context);
+
+	/**
+	 * Visit a parse tree produced by the `Parens` labeled alternative
+	 * in {@see GolampiParser::expr()}.
+	 *
+	 * @param Context\ParensContext $context The parse tree.
+	 *
+	 * @return mixed The visitor result.
+	 */
+	public function visitParens(Context\ParensContext $context);
+
+	/**
+	 * Visit a parse tree produced by the `LiteralExpr` labeled alternative
+	 * in {@see GolampiParser::expr()}.
+	 *
+	 * @param Context\LiteralExprContext $context The parse tree.
+	 *
+	 * @return mixed The visitor result.
+	 */
+	public function visitLiteralExpr(Context\LiteralExprContext $context);
 
 	/**
 	 * Visit a parse tree produced by {@see GolampiParser::literal()}.

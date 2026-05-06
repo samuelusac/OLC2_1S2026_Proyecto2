@@ -1,26 +1,45 @@
 <?php
 
-class IRVisitor extends GolampiBaseVisitor {
+class IRVisitor extends GolampiBaseVisitor
+{
 
-    public function visitProgram($ctx) {
+    public function visitProgram($ctx)
+    {
+
         $functions = [];
 
         foreach ($ctx->functionDecl() as $fn) {
-            $functions[] = $this->visit($fn);
+            $fnData = $this->visit($fn);
+
+            $name = $fnData['name'];
+
+            if (isset($functions[$name])) {
+                throw new Exception("Función duplicada: $name");
+            }
+
+            $functions[$name] = $fnData;
         }
 
-        return $functions;
+        return [
+            "functions" => $functions,
+            "entry" => "main"
+        ];
     }
 
-    public function visitFunctionDecl($ctx) {
+    public function visitFunctionDecl($ctx)
+    {
+
+        $name = $ctx->ID()->getText();
+
         return [
             "type" => "FUNCTION",
-            "name" => "main",
+            "name" => $name,
             "body" => $this->visit($ctx->block())
         ];
     }
 
-    public function visitBlock($ctx) {
+    public function visitBlock($ctx)
+    {
         $instructions = [];
 
         foreach ($ctx->statement() as $stmt) {
@@ -30,7 +49,8 @@ class IRVisitor extends GolampiBaseVisitor {
         return $instructions;
     }
 
-    public function visitPrintStmt($ctx) {
+    public function visitPrintStmt($ctx)
+    {
         $args = [];
 
         if ($ctx->argumentList()) {
@@ -45,11 +65,38 @@ class IRVisitor extends GolampiBaseVisitor {
         ];
     }
 
-    public function visitExpr($ctx) {
+    public function visitExpr($ctx)
+    {
         return $this->visit($ctx->literal());
     }
 
-    public function visitLiteral($ctx) {
+    public function visitMulDiv($ctx)
+    {
+        return [
+            "type" => "BINARY",
+            "op" => $ctx->getChild(1)->getText(),
+            "left" => $this->visit($ctx->expr(0)),
+            "right" => $this->visit($ctx->expr(1))
+        ];
+    }
+
+    public function visitAddSub($ctx)
+    {
+        return [
+            "type" => "BINARY",
+            "op" => $ctx->getChild(1)->getText(),
+            "left" => $this->visit($ctx->expr(0)),
+            "right" => $this->visit($ctx->expr(1))
+        ];
+    }
+
+    public function visitParens($ctx)
+    {
+        return $this->visit($ctx->expr());
+    }
+
+    public function visitLiteral($ctx)
+    {
         return [
             "type" => "CONST",
             "value" => $ctx->getText()
