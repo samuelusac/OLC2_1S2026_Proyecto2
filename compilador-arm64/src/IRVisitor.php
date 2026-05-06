@@ -35,9 +35,10 @@ class IRVisitor extends GolampiBaseVisitor
                     "Función duplicada: $name"
                 );
 
-                return [
-                    "type" => "ERROR"
-                ];
+                // return [
+                //     "type" => "ERROR"
+                // ];
+                continue;
             }
 
             $functions[$name] = $fnData;
@@ -203,6 +204,73 @@ class IRVisitor extends GolampiBaseVisitor
         return $instructions;
     }
 
+    public function visitArrayType($ctx)
+    {
+        $dimensions = [];
+
+        foreach ($ctx->INT() as $intToken) {
+            $dimensions[] = intval($intToken->getText());
+        }
+
+        return [
+            "kind" => "array",
+            "dimensions" => $dimensions,
+            "baseType" => $ctx->primitiveType()->getText()
+        ];
+    }
+
+    public function visitArrayAccess($ctx)
+    {
+        $name = $ctx->ID()->getText();
+
+        $symbol = $this->symbolTable->lookup($name);
+
+        if (!$symbol) {
+
+            $this->errorManager->add(
+                "Semántico",
+                "Arreglo no definido: $name"
+            );
+
+            return [
+                "type" => "ERROR"
+            ];
+        }
+
+        $indices = [];
+
+        foreach ($ctx->expr() as $exprCtx) {
+            $indices[] = $this->visit($exprCtx);
+        }
+
+        return [
+            "type" => "ARRAY_ACCESS",
+            "array" => $name,
+            "indices" => $indices,
+            "offset" => $symbol['offset'] ?? null
+        ];
+    }
+
+    public function visitArrayAssignment($ctx)
+    {
+        $indices = [];
+
+        $exprs = $ctx->expr();
+
+        for ($i = 0; $i < count($exprs) - 1; $i++) {
+            $indices[] = $this->visit($exprs[$i]);
+        }
+
+        $value = $this->visit($exprs[count($exprs) - 1]);
+
+        return [
+            "op" => "ARRAY_ASSIGN",
+            "array" => $ctx->ID()->getText(),
+            "indices" => $indices,
+            "value" => $value
+        ];
+    }
+
     public function visitWhileStmt($ctx)
     {
         $startLabel = $this->newLabel();
@@ -279,7 +347,7 @@ class IRVisitor extends GolampiBaseVisitor
     {
 
         $name = $ctx->ID()->getText();
-        $type = $ctx->type()->getText();
+        $type = $this->visit($ctx->type());
 
         $value = null;
 
@@ -305,9 +373,17 @@ class IRVisitor extends GolampiBaseVisitor
 
     public function visitShortVarDecl($ctx)
     {
-
         $name = $ctx->ID()->getText();
+
         $value = $this->visit($ctx->expr());
+
+        $offset = $this->currentFrame->allocate($name);
+
+        $this->symbolTable->declare($name, [
+            "type" => "infer",
+            "kind" => "local",
+            "offset" => $offset
+        ]);
 
         return [
             "op" => "DECLARE",
@@ -354,10 +430,10 @@ class IRVisitor extends GolampiBaseVisitor
         ];
     }
 
-    public function visitExpr($ctx)
-    {
-        return $this->visit($ctx->literal());
-    }
+    // public function visitExpr($ctx)
+    // {
+    //     return $this->visit($ctx->literal());
+    // }
 
     public function visitLogicalOr($ctx)
     {
@@ -421,11 +497,19 @@ class IRVisitor extends GolampiBaseVisitor
         ];
     }
 
+    public function visitPrimitiveType($ctx)
+    {
+        return [
+            "kind" => "primitive",
+            "name" => $ctx->getText()
+        ];
+    }
+
     private function buildParameter($ctx)
     {
         return [
             "name" => $ctx->ID()->getText(),
-            "type" => $ctx->type()->getText()
+            "type" => $this->visit($ctx->type())
         ];
     }
 

@@ -33,6 +33,16 @@ statement
     | returnStmt
     | functionCall
     | printStmt
+    | arrayAssignment
+    | constDecl
+    ;
+
+constDecl
+    : 'const' ID type '=' expr
+    ;
+    
+arrayAssignment
+    : ID ('[' expr ']')+ '=' expr
     ;
 
 returnStmt
@@ -52,11 +62,19 @@ ifStmt
     ;
 
 varDecl
-    : 'var' ID type ('=' expr)?
+    : 'var' idList type ('=' exprList)?
+    ;
+
+idList
+    : ID (',' ID)*
+    ;
+
+exprList
+    : expr (',' expr)*
     ;
 
 shortVarDecl
-    : ID ':=' expr
+    : idList ':=' exprList
     ;
     
 assignment
@@ -64,6 +82,15 @@ assignment
     ;
 
 type
+    : arrayType
+    | primitiveType
+    ;
+
+arrayType
+    : ('[' INT ']')+ primitiveType
+    ;
+
+primitiveType
     : 'int32'
     | 'float32'
     | 'bool'
@@ -106,8 +133,9 @@ expr
 
     | '(' expr ')'        # Parens
 
-    | literal             # LiteralExpr
-    | ID                  # IdentifierExpr
+    | literal                 # LiteralExpr
+    | ID ('[' expr ']')+      # ArrayAccess
+    | ID                      # IdentifierExpr
     ;
 
 literal
