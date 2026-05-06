@@ -48,6 +48,15 @@ interface GolampiVisitor extends ParseTreeVisitor
 	public function visitStatement(Context\StatementContext $context);
 
 	/**
+	 * Visit a parse tree produced by {@see GolampiParser::functionCall()}.
+	 *
+	 * @param Context\FunctionCallContext $context The parse tree.
+	 *
+	 * @return mixed The visitor result.
+	 */
+	public function visitFunctionCall(Context\FunctionCallContext $context);
+
+	/**
 	 * Visit a parse tree produced by {@see GolampiParser::whileStmt()}.
 	 *
 	 * @param Context\WhileStmtContext $context The parse tree.

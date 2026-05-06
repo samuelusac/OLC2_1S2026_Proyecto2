@@ -73,6 +73,19 @@ class GolampiBaseListener implements GolampiListener
 	 *
 	 * The default implementation does nothing.
 	 */
+	public function enterFunctionCall(Context\FunctionCallContext $context): void {}
+
+	/**
+	 * {@inheritdoc}
+	 *
+	 * The default implementation does nothing.
+	 */
+	public function exitFunctionCall(Context\FunctionCallContext $context): void {}
+	/**
+	 * {@inheritdoc}
+	 *
+	 * The default implementation does nothing.
+	 */
 	public function enterWhileStmt(Context\WhileStmtContext $context): void {}
 
 	/**

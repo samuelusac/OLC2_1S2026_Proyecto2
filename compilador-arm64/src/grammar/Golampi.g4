@@ -22,7 +22,12 @@ statement
     | assignment
     | ifStmt
     | whileStmt
+    | functionCall
     | printStmt
+    ;
+
+functionCall
+    : ID '(' argumentList? ')'
     ;
 
 whileStmt

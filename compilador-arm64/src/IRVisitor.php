@@ -4,6 +4,12 @@ class IRVisitor extends GolampiBaseVisitor
 {
 
     private int $labelCounter = 0;
+    private SymbolTable $symbolTable;
+
+    public function __construct()
+    {
+        $this->symbolTable = new SymbolTable();
+    }
 
     private function newLabel(): string
     {
@@ -34,35 +40,40 @@ class IRVisitor extends GolampiBaseVisitor
 
     public function visitFunctionDecl($ctx)
     {
-
         $name = $ctx->ID()->getText();
+
+        // nuevo scope función
+        $this->symbolTable->enterScope();
+
+        $body = $this->visit($ctx->block());
+
+        $this->symbolTable->exitScope();
 
         return [
             "type" => "FUNCTION",
             "name" => $name,
-            "body" => $this->visit($ctx->block())
+            "body" => $body
         ];
     }
 
     public function visitBlock($ctx)
     {
+        $this->symbolTable->enterScope();
+
         $instructions = [];
 
         foreach ($ctx->statement() as $stmt) {
 
             $result = $this->visit($stmt);
 
-            // Si el resultado es una lista de instrucciones
             if (is_array($result) && isset($result[0])) {
-
                 $instructions = array_merge($instructions, $result);
-
             } else {
-
-                // instrucción única
                 $instructions[] = $result;
             }
         }
+
+        $this->symbolTable->exitScope();
 
         return $instructions;
     }
@@ -198,6 +209,25 @@ class IRVisitor extends GolampiBaseVisitor
         return $instructions;
     }
 
+    public function visitFunctionCall($ctx)
+    {
+        $name = $ctx->ID()->getText();
+
+        $args = [];
+
+        if ($ctx->argumentList()) {
+            foreach ($ctx->argumentList()->expr() as $expr) {
+                $args[] = $this->visit($expr);
+            }
+        }
+
+        return [
+            "op" => "CALL",
+            "name" => $name,
+            "args" => $args
+        ];
+    }
+
     public function visitVarDecl($ctx)
     {
 
@@ -209,6 +239,10 @@ class IRVisitor extends GolampiBaseVisitor
         if ($ctx->expr()) {
             $value = $this->visit($ctx->expr());
         }
+
+        $this->symbolTable->declare($name, [
+            "type" => $type
+        ]);
 
         return [
             "op" => "DECLARE",
@@ -247,9 +281,17 @@ class IRVisitor extends GolampiBaseVisitor
 
     public function visitIdentifierExpr($ctx)
     {
+        $name = $ctx->getText();
+
+        $symbol = $this->symbolTable->lookup($name);
+
+        if (!$symbol) {
+            throw new Exception("Variable no definida: $name");
+        }
+
         return [
             "type" => "VAR",
-            "name" => $ctx->getText()
+            "name" => $name
         ];
     }
 
