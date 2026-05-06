@@ -112,17 +112,17 @@ interface GolampiListener extends ParseTreeListener {
 	 */
 	public function exitArgumentList(Context\ArgumentListContext $context): void;
 	/**
-	 * Enter a parse tree produced by the `MulDiv`
+	 * Enter a parse tree produced by the `LogicalNot`
 	 * labeled alternative in {@see GolampiParser::expr()}.
 	 * @param $context The parse tree.
 	 */
-	public function enterMulDiv(Context\MulDivContext $context): void;
+	public function enterLogicalNot(Context\LogicalNotContext $context): void;
 	/**
-	 * Exit a parse tree produced by the `MulDiv` labeled alternative
+	 * Exit a parse tree produced by the `LogicalNot` labeled alternative
 	 * in {@see GolampiParser::expr()}.
 	 * @param $context The parse tree.
 	 */
-	public function exitMulDiv(Context\MulDivContext $context): void;
+	public function exitLogicalNot(Context\LogicalNotContext $context): void;
 	/**
 	 * Enter a parse tree produced by the `AddSub`
 	 * labeled alternative in {@see GolampiParser::expr()}.
@@ -136,6 +136,18 @@ interface GolampiListener extends ParseTreeListener {
 	 */
 	public function exitAddSub(Context\AddSubContext $context): void;
 	/**
+	 * Enter a parse tree produced by the `MulDiv`
+	 * labeled alternative in {@see GolampiParser::expr()}.
+	 * @param $context The parse tree.
+	 */
+	public function enterMulDiv(Context\MulDivContext $context): void;
+	/**
+	 * Exit a parse tree produced by the `MulDiv` labeled alternative
+	 * in {@see GolampiParser::expr()}.
+	 * @param $context The parse tree.
+	 */
+	public function exitMulDiv(Context\MulDivContext $context): void;
+	/**
 	 * Enter a parse tree produced by the `Parens`
 	 * labeled alternative in {@see GolampiParser::expr()}.
 	 * @param $context The parse tree.
@@ -148,6 +160,42 @@ interface GolampiListener extends ParseTreeListener {
 	 */
 	public function exitParens(Context\ParensContext $context): void;
 	/**
+	 * Enter a parse tree produced by the `IdentifierExpr`
+	 * labeled alternative in {@see GolampiParser::expr()}.
+	 * @param $context The parse tree.
+	 */
+	public function enterIdentifierExpr(Context\IdentifierExprContext $context): void;
+	/**
+	 * Exit a parse tree produced by the `IdentifierExpr` labeled alternative
+	 * in {@see GolampiParser::expr()}.
+	 * @param $context The parse tree.
+	 */
+	public function exitIdentifierExpr(Context\IdentifierExprContext $context): void;
+	/**
+	 * Enter a parse tree produced by the `LogicalAnd`
+	 * labeled alternative in {@see GolampiParser::expr()}.
+	 * @param $context The parse tree.
+	 */
+	public function enterLogicalAnd(Context\LogicalAndContext $context): void;
+	/**
+	 * Exit a parse tree produced by the `LogicalAnd` labeled alternative
+	 * in {@see GolampiParser::expr()}.
+	 * @param $context The parse tree.
+	 */
+	public function exitLogicalAnd(Context\LogicalAndContext $context): void;
+	/**
+	 * Enter a parse tree produced by the `Relational`
+	 * labeled alternative in {@see GolampiParser::expr()}.
+	 * @param $context The parse tree.
+	 */
+	public function enterRelational(Context\RelationalContext $context): void;
+	/**
+	 * Exit a parse tree produced by the `Relational` labeled alternative
+	 * in {@see GolampiParser::expr()}.
+	 * @param $context The parse tree.
+	 */
+	public function exitRelational(Context\RelationalContext $context): void;
+	/**
 	 * Enter a parse tree produced by the `LiteralExpr`
 	 * labeled alternative in {@see GolampiParser::expr()}.
 	 * @param $context The parse tree.
@@ -159,6 +207,30 @@ interface GolampiListener extends ParseTreeListener {
 	 * @param $context The parse tree.
 	 */
 	public function exitLiteralExpr(Context\LiteralExprContext $context): void;
+	/**
+	 * Enter a parse tree produced by the `Equality`
+	 * labeled alternative in {@see GolampiParser::expr()}.
+	 * @param $context The parse tree.
+	 */
+	public function enterEquality(Context\EqualityContext $context): void;
+	/**
+	 * Exit a parse tree produced by the `Equality` labeled alternative
+	 * in {@see GolampiParser::expr()}.
+	 * @param $context The parse tree.
+	 */
+	public function exitEquality(Context\EqualityContext $context): void;
+	/**
+	 * Enter a parse tree produced by the `LogicalOr`
+	 * labeled alternative in {@see GolampiParser::expr()}.
+	 * @param $context The parse tree.
+	 */
+	public function enterLogicalOr(Context\LogicalOrContext $context): void;
+	/**
+	 * Exit a parse tree produced by the `LogicalOr` labeled alternative
+	 * in {@see GolampiParser::expr()}.
+	 * @param $context The parse tree.
+	 */
+	public function exitLogicalOr(Context\LogicalOrContext $context): void;
 	/**
 	 * Enter a parse tree produced by {@see GolampiParser::literal()}.
 	 * @param $context The parse tree.

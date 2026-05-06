@@ -151,14 +151,14 @@ class GolampiBaseListener implements GolampiListener
 	 *
 	 * The default implementation does nothing.
 	 */
-	public function enterMulDiv(Context\MulDivContext $context): void {}
+	public function enterLogicalNot(Context\LogicalNotContext $context): void {}
 
 	/**
 	 * {@inheritdoc}
 	 *
 	 * The default implementation does nothing.
 	 */
-	public function exitMulDiv(Context\MulDivContext $context): void {}
+	public function exitLogicalNot(Context\LogicalNotContext $context): void {}
 	/**
 	 * {@inheritdoc}
 	 *
@@ -177,6 +177,19 @@ class GolampiBaseListener implements GolampiListener
 	 *
 	 * The default implementation does nothing.
 	 */
+	public function enterMulDiv(Context\MulDivContext $context): void {}
+
+	/**
+	 * {@inheritdoc}
+	 *
+	 * The default implementation does nothing.
+	 */
+	public function exitMulDiv(Context\MulDivContext $context): void {}
+	/**
+	 * {@inheritdoc}
+	 *
+	 * The default implementation does nothing.
+	 */
 	public function enterParens(Context\ParensContext $context): void {}
 
 	/**
@@ -190,6 +203,45 @@ class GolampiBaseListener implements GolampiListener
 	 *
 	 * The default implementation does nothing.
 	 */
+	public function enterIdentifierExpr(Context\IdentifierExprContext $context): void {}
+
+	/**
+	 * {@inheritdoc}
+	 *
+	 * The default implementation does nothing.
+	 */
+	public function exitIdentifierExpr(Context\IdentifierExprContext $context): void {}
+	/**
+	 * {@inheritdoc}
+	 *
+	 * The default implementation does nothing.
+	 */
+	public function enterLogicalAnd(Context\LogicalAndContext $context): void {}
+
+	/**
+	 * {@inheritdoc}
+	 *
+	 * The default implementation does nothing.
+	 */
+	public function exitLogicalAnd(Context\LogicalAndContext $context): void {}
+	/**
+	 * {@inheritdoc}
+	 *
+	 * The default implementation does nothing.
+	 */
+	public function enterRelational(Context\RelationalContext $context): void {}
+
+	/**
+	 * {@inheritdoc}
+	 *
+	 * The default implementation does nothing.
+	 */
+	public function exitRelational(Context\RelationalContext $context): void {}
+	/**
+	 * {@inheritdoc}
+	 *
+	 * The default implementation does nothing.
+	 */
 	public function enterLiteralExpr(Context\LiteralExprContext $context): void {}
 
 	/**
@@ -198,6 +250,32 @@ class GolampiBaseListener implements GolampiListener
 	 * The default implementation does nothing.
 	 */
 	public function exitLiteralExpr(Context\LiteralExprContext $context): void {}
+	/**
+	 * {@inheritdoc}
+	 *
+	 * The default implementation does nothing.
+	 */
+	public function enterEquality(Context\EqualityContext $context): void {}
+
+	/**
+	 * {@inheritdoc}
+	 *
+	 * The default implementation does nothing.
+	 */
+	public function exitEquality(Context\EqualityContext $context): void {}
+	/**
+	 * {@inheritdoc}
+	 *
+	 * The default implementation does nothing.
+	 */
+	public function enterLogicalOr(Context\LogicalOrContext $context): void {}
+
+	/**
+	 * {@inheritdoc}
+	 *
+	 * The default implementation does nothing.
+	 */
+	public function exitLogicalOr(Context\LogicalOrContext $context): void {}
 	/**
 	 * {@inheritdoc}
 	 *

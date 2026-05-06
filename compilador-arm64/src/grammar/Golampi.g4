@@ -42,7 +42,7 @@ type
     | 'string'
     | 'rune'
     ;
-    
+
 printStmt
     : 'fmt' '.' 'Println' '(' argumentList? ')' ';'?
     ;
@@ -56,12 +56,30 @@ argumentList
 // =====================
 
 expr
-    : expr '*' expr   # MulDiv
-    | expr '/' expr   # MulDiv
-    | expr '+' expr   # AddSub
-    | expr '-' expr   # AddSub
-    | '(' expr ')'    # Parens
-    | literal         # LiteralExpr
+    : expr '||' expr      # LogicalOr
+    | expr '&&' expr      # LogicalAnd
+
+    | expr '==' expr      # Equality
+    | expr '!=' expr      # Equality
+
+    | expr '<' expr       # Relational
+    | expr '>' expr       # Relational
+    | expr '<=' expr      # Relational
+    | expr '>=' expr      # Relational
+
+    | expr '+' expr       # AddSub
+    | expr '-' expr       # AddSub
+
+    | expr '*' expr       # MulDiv
+    | expr '/' expr       # MulDiv
+    | expr '%' expr       # MulDiv
+
+    | '!' expr            # LogicalNot
+
+    | '(' expr ')'        # Parens
+
+    | literal             # LiteralExpr
+    | ID                  # IdentifierExpr
     ;
 
 literal

@@ -102,14 +102,14 @@ interface GolampiVisitor extends ParseTreeVisitor
 	public function visitArgumentList(Context\ArgumentListContext $context);
 
 	/**
-	 * Visit a parse tree produced by the `MulDiv` labeled alternative
+	 * Visit a parse tree produced by the `LogicalNot` labeled alternative
 	 * in {@see GolampiParser::expr()}.
 	 *
-	 * @param Context\MulDivContext $context The parse tree.
+	 * @param Context\LogicalNotContext $context The parse tree.
 	 *
 	 * @return mixed The visitor result.
 	 */
-	public function visitMulDiv(Context\MulDivContext $context);
+	public function visitLogicalNot(Context\LogicalNotContext $context);
 
 	/**
 	 * Visit a parse tree produced by the `AddSub` labeled alternative
@@ -122,6 +122,16 @@ interface GolampiVisitor extends ParseTreeVisitor
 	public function visitAddSub(Context\AddSubContext $context);
 
 	/**
+	 * Visit a parse tree produced by the `MulDiv` labeled alternative
+	 * in {@see GolampiParser::expr()}.
+	 *
+	 * @param Context\MulDivContext $context The parse tree.
+	 *
+	 * @return mixed The visitor result.
+	 */
+	public function visitMulDiv(Context\MulDivContext $context);
+
+	/**
 	 * Visit a parse tree produced by the `Parens` labeled alternative
 	 * in {@see GolampiParser::expr()}.
 	 *
@@ -132,6 +142,36 @@ interface GolampiVisitor extends ParseTreeVisitor
 	public function visitParens(Context\ParensContext $context);
 
 	/**
+	 * Visit a parse tree produced by the `IdentifierExpr` labeled alternative
+	 * in {@see GolampiParser::expr()}.
+	 *
+	 * @param Context\IdentifierExprContext $context The parse tree.
+	 *
+	 * @return mixed The visitor result.
+	 */
+	public function visitIdentifierExpr(Context\IdentifierExprContext $context);
+
+	/**
+	 * Visit a parse tree produced by the `LogicalAnd` labeled alternative
+	 * in {@see GolampiParser::expr()}.
+	 *
+	 * @param Context\LogicalAndContext $context The parse tree.
+	 *
+	 * @return mixed The visitor result.
+	 */
+	public function visitLogicalAnd(Context\LogicalAndContext $context);
+
+	/**
+	 * Visit a parse tree produced by the `Relational` labeled alternative
+	 * in {@see GolampiParser::expr()}.
+	 *
+	 * @param Context\RelationalContext $context The parse tree.
+	 *
+	 * @return mixed The visitor result.
+	 */
+	public function visitRelational(Context\RelationalContext $context);
+
+	/**
 	 * Visit a parse tree produced by the `LiteralExpr` labeled alternative
 	 * in {@see GolampiParser::expr()}.
 	 *
@@ -140,6 +180,26 @@ interface GolampiVisitor extends ParseTreeVisitor
 	 * @return mixed The visitor result.
 	 */
 	public function visitLiteralExpr(Context\LiteralExprContext $context);
+
+	/**
+	 * Visit a parse tree produced by the `Equality` labeled alternative
+	 * in {@see GolampiParser::expr()}.
+	 *
+	 * @param Context\EqualityContext $context The parse tree.
+	 *
+	 * @return mixed The visitor result.
+	 */
+	public function visitEquality(Context\EqualityContext $context);
+
+	/**
+	 * Visit a parse tree produced by the `LogicalOr` labeled alternative
+	 * in {@see GolampiParser::expr()}.
+	 *
+	 * @param Context\LogicalOrContext $context The parse tree.
+	 *
+	 * @return mixed The visitor result.
+	 */
+	public function visitLogicalOr(Context\LogicalOrContext $context);
 
 	/**
 	 * Visit a parse tree produced by {@see GolampiParser::literal()}.
