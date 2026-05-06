@@ -42,8 +42,25 @@ class IRVisitor extends GolampiBaseVisitor
     {
         $name = $ctx->ID()->getText();
 
-        // nuevo scope función
         $this->symbolTable->enterScope();
+
+        $params = [];
+
+        if ($ctx->parameterList()) {
+
+            foreach ($ctx->parameterList()->parameter() as $paramCtx) {
+
+                $param = $this->buildParameter($paramCtx);
+
+                $params[] = $param;
+
+                // parámetros son variables locales
+                $this->symbolTable->declare($param['name'], [
+                    "type" => $param['type'],
+                    "kind" => "parameter"
+                ]);
+            }
+        }
 
         $body = $this->visit($ctx->block());
 
@@ -52,7 +69,22 @@ class IRVisitor extends GolampiBaseVisitor
         return [
             "type" => "FUNCTION",
             "name" => $name,
+            "params" => $params,
             "body" => $body
+        ];
+    }
+
+    public function visitReturnStmt($ctx)
+    {
+        $value = null;
+
+        if ($ctx->expr()) {
+            $value = $this->visit($ctx->expr());
+        }
+
+        return [
+            "op" => "RETURN",
+            "value" => $value
         ];
     }
 
@@ -361,4 +393,13 @@ class IRVisitor extends GolampiBaseVisitor
             "value" => $ctx->getText()
         ];
     }
+
+    private function buildParameter($ctx)
+    {
+        return [
+            "name" => $ctx->ID()->getText(),
+            "type" => $ctx->type()->getText()
+        ];
+    }
 }
+

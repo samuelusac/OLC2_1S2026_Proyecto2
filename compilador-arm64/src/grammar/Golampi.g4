@@ -9,7 +9,15 @@ program
     ;
 
 functionDecl
-    : 'func' ID  '(' ')' block
+    : 'func' ID '(' parameterList? ')' block
+    ;
+
+parameterList
+    : parameter (',' parameter)*
+    ;
+
+parameter
+    : ID type
     ;
 
 block
@@ -22,8 +30,13 @@ statement
     | assignment
     | ifStmt
     | whileStmt
+    | returnStmt
     | functionCall
     | printStmt
+    ;
+
+returnStmt
+    : 'return' expr?
     ;
 
 functionCall

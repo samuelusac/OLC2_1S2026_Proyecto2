@@ -32,6 +32,26 @@ interface GolampiListener extends ParseTreeListener {
 	 */
 	public function exitFunctionDecl(Context\FunctionDeclContext $context): void;
 	/**
+	 * Enter a parse tree produced by {@see GolampiParser::parameterList()}.
+	 * @param $context The parse tree.
+	 */
+	public function enterParameterList(Context\ParameterListContext $context): void;
+	/**
+	 * Exit a parse tree produced by {@see GolampiParser::parameterList()}.
+	 * @param $context The parse tree.
+	 */
+	public function exitParameterList(Context\ParameterListContext $context): void;
+	/**
+	 * Enter a parse tree produced by {@see GolampiParser::parameter()}.
+	 * @param $context The parse tree.
+	 */
+	public function enterParameter(Context\ParameterContext $context): void;
+	/**
+	 * Exit a parse tree produced by {@see GolampiParser::parameter()}.
+	 * @param $context The parse tree.
+	 */
+	public function exitParameter(Context\ParameterContext $context): void;
+	/**
 	 * Enter a parse tree produced by {@see GolampiParser::block()}.
 	 * @param $context The parse tree.
 	 */
@@ -51,6 +71,16 @@ interface GolampiListener extends ParseTreeListener {
 	 * @param $context The parse tree.
 	 */
 	public function exitStatement(Context\StatementContext $context): void;
+	/**
+	 * Enter a parse tree produced by {@see GolampiParser::returnStmt()}.
+	 * @param $context The parse tree.
+	 */
+	public function enterReturnStmt(Context\ReturnStmtContext $context): void;
+	/**
+	 * Exit a parse tree produced by {@see GolampiParser::returnStmt()}.
+	 * @param $context The parse tree.
+	 */
+	public function exitReturnStmt(Context\ReturnStmtContext $context): void;
 	/**
 	 * Enter a parse tree produced by {@see GolampiParser::functionCall()}.
 	 * @param $context The parse tree.

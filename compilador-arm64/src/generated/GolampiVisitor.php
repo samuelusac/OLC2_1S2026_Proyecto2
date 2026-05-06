@@ -30,6 +30,24 @@ interface GolampiVisitor extends ParseTreeVisitor
 	public function visitFunctionDecl(Context\FunctionDeclContext $context);
 
 	/**
+	 * Visit a parse tree produced by {@see GolampiParser::parameterList()}.
+	 *
+	 * @param Context\ParameterListContext $context The parse tree.
+	 *
+	 * @return mixed The visitor result.
+	 */
+	public function visitParameterList(Context\ParameterListContext $context);
+
+	/**
+	 * Visit a parse tree produced by {@see GolampiParser::parameter()}.
+	 *
+	 * @param Context\ParameterContext $context The parse tree.
+	 *
+	 * @return mixed The visitor result.
+	 */
+	public function visitParameter(Context\ParameterContext $context);
+
+	/**
 	 * Visit a parse tree produced by {@see GolampiParser::block()}.
 	 *
 	 * @param Context\BlockContext $context The parse tree.
@@ -46,6 +64,15 @@ interface GolampiVisitor extends ParseTreeVisitor
 	 * @return mixed The visitor result.
 	 */
 	public function visitStatement(Context\StatementContext $context);
+
+	/**
+	 * Visit a parse tree produced by {@see GolampiParser::returnStmt()}.
+	 *
+	 * @param Context\ReturnStmtContext $context The parse tree.
+	 *
+	 * @return mixed The visitor result.
+	 */
+	public function visitReturnStmt(Context\ReturnStmtContext $context);
 
 	/**
 	 * Visit a parse tree produced by {@see GolampiParser::functionCall()}.
