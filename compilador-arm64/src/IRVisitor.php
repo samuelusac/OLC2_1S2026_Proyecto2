@@ -6,10 +6,12 @@ class IRVisitor extends GolampiBaseVisitor
     private int $labelCounter = 0;
     private SymbolTable $symbolTable;
     private ?StackFrame $currentFrame = null;
+    private ErrorManager $errorManager;
 
     public function __construct()
     {
         $this->symbolTable = new SymbolTable();
+        $this->errorManager = new ErrorManager();
     }
 
     private function newLabel(): string
@@ -27,7 +29,15 @@ class IRVisitor extends GolampiBaseVisitor
             $name = $fnData['name'];
 
             if (isset($functions[$name])) {
-                throw new Exception("Función duplicada: $name");
+                // throw new Exception("Función duplicada: $name");
+                $this->errorManager->add(
+                    "Semántico",
+                    "Función duplicada: $name"
+                );
+
+                return [
+                    "type" => "ERROR"
+                ];
             }
 
             $functions[$name] = $fnData;
@@ -327,7 +337,14 @@ class IRVisitor extends GolampiBaseVisitor
         $symbol = $this->symbolTable->lookup($name);
 
         if (!$symbol) {
-            throw new Exception("Variable no definida: $name");
+            $this->errorManager->add(
+                "Semántico",
+                "Variable no definida: $name"
+            );
+
+            return [
+                "type" => "ERROR"
+            ];
         }
 
         return [
@@ -415,6 +432,11 @@ class IRVisitor extends GolampiBaseVisitor
     public function getSymbolTable(): array
     {
         return $this->symbolTable->getAllSymbols();
+    }
+
+    public function getErrors(): array
+    {
+        return $this->errorManager->getErrors();
     }
 }
 

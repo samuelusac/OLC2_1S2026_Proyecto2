@@ -178,7 +178,7 @@ $output = $_SESSION['output'] ?? '';
                     Descargar Resultado
                 </button>
 
-                <button class="report-btn" type="button">
+                <button class="report-btn" type="button" onclick="window.location.href='download_errors.php'">
                     Descargar Errores
                 </button>
 

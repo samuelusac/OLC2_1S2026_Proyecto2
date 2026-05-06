@@ -44,6 +44,7 @@ try {
 
             require_once __DIR__ . '/../compilador-arm64/src/SymbolTable.php';
             require_once __DIR__ . '/../compilador-arm64/src/StackFrame.php';
+            require_once __DIR__ . '/../compilador-arm64/src/ErrorManager.php';
 
             require_once __DIR__ . '/../compilador-arm64/src/IRVisitor.php';
 
@@ -77,12 +78,37 @@ try {
 
                 $_SESSION['output'] = $output;
 
+                $visitor = new IRVisitor();
+
+                $ir = $visitor->visit($tree);
+
+                $semanticErrors = $visitor->getErrors();
+
+                $allErrors = [];
+
+                // sintácticos
+                foreach ($errorListener->errors as $err) {
+
+                    $allErrors[] = [
+                        "type" => "Sintáctico",
+                        ...$err
+                    ];
+                }
+
+                // semánticos
+                $allErrors = array_merge($allErrors, $semanticErrors);
+
+                $_SESSION['errors'] = $allErrors;
+
             } else {
                 // $_SESSION['output'] = "✅ Parse OK";
                 $visitor = new IRVisitor();
                 $ir = $visitor->visit($tree);
+
                 $symbols = $visitor->getSymbolTable();
                 $_SESSION['symbols'] = $symbols;
+
+                $semanticErrors = $visitor->getErrors();
 
                 $_SESSION['output'] = json_encode($ir, JSON_PRETTY_PRINT);
             }
