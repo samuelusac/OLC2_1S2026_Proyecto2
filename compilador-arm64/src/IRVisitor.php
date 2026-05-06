@@ -3,6 +3,12 @@
 class IRVisitor extends GolampiBaseVisitor
 {
 
+    private int $labelCounter = 0;
+
+    private function newLabel(): string
+    {
+        return "L" . $this->labelCounter++;
+    }
     public function visitProgram($ctx)
     {
 
@@ -43,7 +49,19 @@ class IRVisitor extends GolampiBaseVisitor
         $instructions = [];
 
         foreach ($ctx->statement() as $stmt) {
-            $instructions[] = $this->visit($stmt);
+
+            $result = $this->visit($stmt);
+
+            // Si el resultado es una lista de instrucciones
+            if (is_array($result) && isset($result[0])) {
+
+                $instructions = array_merge($instructions, $result);
+
+            } else {
+
+                // instrucción única
+                $instructions[] = $result;
+            }
         }
 
         return $instructions;
@@ -63,6 +81,121 @@ class IRVisitor extends GolampiBaseVisitor
             "op" => "PRINT",
             "args" => $args
         ];
+    }
+
+    public function visitIfStmt($ctx)
+    {
+        $condition = $this->visit($ctx->expr());
+
+        $trueLabel = $this->newLabel();
+        $falseLabel = $this->newLabel();
+        $endLabel = $this->newLabel();
+
+        $thenBody = $this->visit($ctx->block(0));
+
+        $hasElse = count($ctx->block()) > 1;
+
+        $instructions = [];
+
+        // if condition goto true
+        $instructions[] = [
+            "op" => "IF_GOTO",
+            "condition" => $condition,
+            "label" => $trueLabel
+        ];
+
+        // goto false
+        $instructions[] = [
+            "op" => "GOTO",
+            "label" => $falseLabel
+        ];
+
+        // TRUE LABEL
+        $instructions[] = [
+            "op" => "LABEL",
+            "name" => $trueLabel
+        ];
+
+        $instructions = array_merge($instructions, $thenBody);
+
+        // salir del if
+        $instructions[] = [
+            "op" => "GOTO",
+            "label" => $endLabel
+        ];
+
+        // FALSE LABEL
+        $instructions[] = [
+            "op" => "LABEL",
+            "name" => $falseLabel
+        ];
+
+        // else body
+        if ($hasElse) {
+            $elseBody = $this->visit($ctx->block(1));
+            $instructions = array_merge($instructions, $elseBody);
+        }
+
+        // END LABEL
+        $instructions[] = [
+            "op" => "LABEL",
+            "name" => $endLabel
+        ];
+
+        return $instructions;
+    }
+
+    public function visitWhileStmt($ctx)
+    {
+        $startLabel = $this->newLabel();
+        $bodyLabel = $this->newLabel();
+        $endLabel = $this->newLabel();
+
+        $condition = $this->visit($ctx->expr());
+        $body = $this->visit($ctx->block());
+
+        $instructions = [];
+
+        // inicio loop
+        $instructions[] = [
+            "op" => "LABEL",
+            "name" => $startLabel
+        ];
+
+        // evaluar condición
+        $instructions[] = [
+            "op" => "IF_GOTO",
+            "condition" => $condition,
+            "label" => $bodyLabel
+        ];
+
+        // salir
+        $instructions[] = [
+            "op" => "GOTO",
+            "label" => $endLabel
+        ];
+
+        // cuerpo
+        $instructions[] = [
+            "op" => "LABEL",
+            "name" => $bodyLabel
+        ];
+
+        $instructions = array_merge($instructions, $body);
+
+        // regresar al inicio
+        $instructions[] = [
+            "op" => "GOTO",
+            "label" => $startLabel
+        ];
+
+        // fin loop
+        $instructions[] = [
+            "op" => "LABEL",
+            "name" => $endLabel
+        ];
+
+        return $instructions;
     }
 
     public function visitVarDecl($ctx)

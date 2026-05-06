@@ -20,7 +20,17 @@ statement
     : varDecl
     | shortVarDecl
     | assignment
+    | ifStmt
+    | whileStmt
     | printStmt
+    ;
+
+whileStmt
+    : 'while' expr block
+    ;
+
+ifStmt
+    : 'if' expr block ('else' block)?
     ;
 
 varDecl

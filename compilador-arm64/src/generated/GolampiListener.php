@@ -52,6 +52,26 @@ interface GolampiListener extends ParseTreeListener {
 	 */
 	public function exitStatement(Context\StatementContext $context): void;
 	/**
+	 * Enter a parse tree produced by {@see GolampiParser::whileStmt()}.
+	 * @param $context The parse tree.
+	 */
+	public function enterWhileStmt(Context\WhileStmtContext $context): void;
+	/**
+	 * Exit a parse tree produced by {@see GolampiParser::whileStmt()}.
+	 * @param $context The parse tree.
+	 */
+	public function exitWhileStmt(Context\WhileStmtContext $context): void;
+	/**
+	 * Enter a parse tree produced by {@see GolampiParser::ifStmt()}.
+	 * @param $context The parse tree.
+	 */
+	public function enterIfStmt(Context\IfStmtContext $context): void;
+	/**
+	 * Exit a parse tree produced by {@see GolampiParser::ifStmt()}.
+	 * @param $context The parse tree.
+	 */
+	public function exitIfStmt(Context\IfStmtContext $context): void;
+	/**
 	 * Enter a parse tree produced by {@see GolampiParser::varDecl()}.
 	 * @param $context The parse tree.
 	 */
