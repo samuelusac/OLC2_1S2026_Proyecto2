@@ -43,6 +43,7 @@ try {
             require_once $basePath . 'GolampiParser.php';
 
             require_once __DIR__ . '/../compilador-arm64/src/SymbolTable.php';
+            require_once __DIR__ . '/../compilador-arm64/src/StackFrame.php';
 
             require_once __DIR__ . '/../compilador-arm64/src/IRVisitor.php';
 

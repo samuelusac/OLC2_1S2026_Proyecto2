@@ -5,6 +5,7 @@ class IRVisitor extends GolampiBaseVisitor
 
     private int $labelCounter = 0;
     private SymbolTable $symbolTable;
+    private ?StackFrame $currentFrame = null;
 
     public function __construct()
     {
@@ -44,6 +45,8 @@ class IRVisitor extends GolampiBaseVisitor
 
         $this->symbolTable->enterScope();
 
+        $this->currentFrame = new StackFrame();
+
         $params = [];
 
         if ($ctx->parameterList()) {
@@ -51,13 +54,15 @@ class IRVisitor extends GolampiBaseVisitor
             foreach ($ctx->parameterList()->parameter() as $paramCtx) {
 
                 $param = $this->buildParameter($paramCtx);
+                $offset = $this->currentFrame->allocate($param['name']);
 
                 $params[] = $param;
 
                 // parámetros son variables locales
                 $this->symbolTable->declare($param['name'], [
                     "type" => $param['type'],
-                    "kind" => "parameter"
+                    "kind" => "parameter",
+                    "offset" => $offset
                 ]);
             }
         }
@@ -272,8 +277,12 @@ class IRVisitor extends GolampiBaseVisitor
             $value = $this->visit($ctx->expr());
         }
 
+        $offset = $this->currentFrame->allocate($name);
+
         $this->symbolTable->declare($name, [
-            "type" => $type
+            "type" => $type,
+            "kind" => "local",
+            "offset" => $offset
         ]);
 
         return [
@@ -323,7 +332,8 @@ class IRVisitor extends GolampiBaseVisitor
 
         return [
             "type" => "VAR",
-            "name" => $name
+            "name" => $name,
+            "offset" => $symbol['offset'] ?? null
         ];
     }
 
