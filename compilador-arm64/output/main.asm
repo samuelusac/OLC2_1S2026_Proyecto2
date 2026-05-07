@@ -13,50 +13,36 @@ main:
     mov w0, #10
     str w0, [x29, #-16]
 
-    // b := expr
-    // const 20
-    mov w0, #20
-    str w0, [x29, #-20]
-
-    // c := expr
-    // const 5
-    mov w0, #5
-    str w0, [x29, #-24]
-
-    // r := expr
-    // BEGIN BINARY OPERATION (*)
-    // evaluate left operand
-    // BEGIN BINARY OPERATION (+)
+    // if condition goto L0
+    // BEGIN BINARY OPERATION (>)
     // evaluate left operand
     // load a
     ldr w0, [x29, #-16]
     // push left operand
     str w0, [sp, #-16]!
     // evaluate right operand
-    // load b
-    ldr w0, [x29, #-20]
+    // const 5
+    mov w0, #5
     // pop left operand into w1
     ldr w1, [sp], #16
-    // w0 = w1 + w0
-    add w0, w1, w0
-    // END BINARY OPERATION (+)
-    // push left operand
-    str w0, [sp, #-16]!
-    // evaluate right operand
-    // load c
-    ldr w0, [x29, #-24]
-    // pop left operand into w1
-    ldr w1, [sp], #16
-    // w0 = w1 * w0
-    mul w0, w1, w0
-    // END BINARY OPERATION (*)
-    str w0, [x29, #-28]
+    // compare w1 > w0
+    cmp w1, w0
+    cset w0, gt
+    // END BINARY OPERATION (>)
+    cmp w0, #1
+    b.eq L0
 
-    // fmt.Println(r)
-    ldr x0, =fmt_int
-    ldr w1, [x29, #-28]
-    bl printf
+    // goto L1
+    b L1
 
+
+L0:
+    // fmt.Println("CONDICION VERDADERA")
+    ldr x0, =msg0
+    bl puts
+
+
+L1:
     // return 0
     mov w0, #0
 
@@ -70,3 +56,5 @@ main:
 fmt_int:
     .asciz "%d\n"
 
+msg0:
+    .asciz "CONDICION VERDADERA"

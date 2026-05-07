@@ -110,6 +110,18 @@ class ARM64Generator
             case 'ASSIGN':
                 $this->generateAssign($instruction);
                 break;
+
+            case 'LABEL':
+                $this->generateLabel($instruction);
+                break;
+
+            case 'GOTO':
+                $this->generateGoto($instruction);
+                break;
+
+            case 'IF_GOTO':
+                $this->generateIfGoto($instruction);
+                break;
         }
     }
 
@@ -248,6 +260,89 @@ class ARM64Generator
                     );
 
                     break;
+                case '==':
+
+                    $this->comment("compare w1 == w0");
+
+                    $this->emit(
+                        "    cmp w1, w0"
+                    );
+
+                    $this->emit(
+                        "    cset w0, eq"
+                    );
+
+                    break;
+
+                case '!=':
+
+                    $this->comment("compare w1 != w0");
+
+                    $this->emit(
+                        "    cmp w1, w0"
+                    );
+
+                    $this->emit(
+                        "    cset w0, ne"
+                    );
+
+                    break;
+
+                case '<':
+
+                    $this->comment("compare w1 < w0");
+
+                    $this->emit(
+                        "    cmp w1, w0"
+                    );
+
+                    $this->emit(
+                        "    cset w0, lt"
+                    );
+
+                    break;
+
+                case '<=':
+
+                    $this->comment("compare w1 <= w0");
+
+                    $this->emit(
+                        "    cmp w1, w0"
+                    );
+
+                    $this->emit(
+                        "    cset w0, le"
+                    );
+
+                    break;
+
+                case '>':
+
+                    $this->comment("compare w1 > w0");
+
+                    $this->emit(
+                        "    cmp w1, w0"
+                    );
+
+                    $this->emit(
+                        "    cset w0, gt"
+                    );
+
+                    break;
+
+                case '>=':
+
+                    $this->comment("compare w1 >= w0");
+
+                    $this->emit(
+                        "    cmp w1, w0"
+                    );
+
+                    $this->emit(
+                        "    cset w0, ge"
+                    );
+
+                    break;
             }
 
             $this->comment("END BINARY OPERATION ($op)");
@@ -340,6 +435,53 @@ class ARM64Generator
                 continue;
             }
         }
+    }
+
+    private function generateLabel(array $instruction): void
+    {
+        $this->emit("");
+
+        $this->emit($instruction['name'] . ":");
+    }
+
+    private function generateGoto(array $instruction): void
+    {
+        $this->comment(
+            "goto " . $instruction['label']
+        );
+
+        $this->emit(
+            "    b " . $instruction['label']
+        );
+
+        $this->emit("");
+    }
+
+    private function generateIfGoto(array $instruction): void
+    {
+        $label = $instruction['label'];
+
+        $this->comment(
+            "if condition goto $label"
+        );
+
+        // evaluar condición
+        // resultado queda en w0
+        $this->generateExpr(
+            $instruction['condition']
+        );
+
+        // comparar resultado con true (1)
+        $this->emit(
+            "    cmp w0, #1"
+        );
+
+        // branch if equal
+        $this->emit(
+            "    b.eq $label"
+        );
+
+        $this->emit("");
     }
 
     private function newString(string $value): string
