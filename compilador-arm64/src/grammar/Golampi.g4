@@ -138,7 +138,6 @@ shortVarDecl
     
 assignment
     : ID assignOp expr
-    | arrayAccess assignOp expr
     ;
 
 assignOp
@@ -207,7 +206,7 @@ multiplicativeExpr
     ;
 
 unaryExpr
-    : '!' unaryExpr
+    : ('!' | '-' | '+') unaryExpr
     | primaryExpr
     ;
 

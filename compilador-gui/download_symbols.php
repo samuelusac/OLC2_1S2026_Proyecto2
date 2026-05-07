@@ -4,6 +4,53 @@ session_start();
 
 $symbols = $_SESSION['symbols'] ?? [];
 
+// =====================================
+// FORMAT TYPE
+// =====================================
+
+function formatType($type): string
+{
+    // primitive string
+
+    if (is_string($type)) {
+        return $type;
+    }
+
+    // =====================================
+    // ARRAY
+    // =====================================
+
+    if (
+        is_array($type)
+        && ($type['kind'] ?? '') === 'array'
+    ) {
+
+        $length = $type['length'] ?? '?';
+
+        $element = formatType(
+            $type['elementType'] ?? 'unknown'
+        );
+
+        return "[$length]$element";
+    }
+
+    // =====================================
+    // OBJECT TYPE
+    // =====================================
+
+    if (is_array($type)) {
+
+        return $type['name']
+            ?? json_encode($type);
+    }
+
+    return strval($type);
+}
+
+// =====================================
+// HTML
+// =====================================
+
 $html = '
 <!DOCTYPE html>
 <html>
@@ -55,11 +102,29 @@ foreach ($symbols as $sym) {
 
     $html .= '<tr>';
 
-    $html .= '<td>' . htmlspecialchars($sym['name']) . '</td>';
-    $html .= '<td>' . htmlspecialchars($sym['type'] ?? '') . '</td>';
-    $html .= '<td>' . htmlspecialchars($sym['kind'] ?? '') . '</td>';
-    $html .= '<td>' . htmlspecialchars($sym['scope']) . '</td>';
-    $html .= '<td>' . htmlspecialchars($sym['offset'] ?? '') . '</td>';
+    $html .= '<td>' .
+        htmlspecialchars($sym['name'] ?? '') .
+    '</td>';
+
+    $html .= '<td>' .
+        htmlspecialchars(
+            formatType($sym['type'] ?? '')
+        ) .
+    '</td>';
+
+    $html .= '<td>' .
+        htmlspecialchars($sym['kind'] ?? '') .
+    '</td>';
+
+    $html .= '<td>' .
+        htmlspecialchars($sym['scope'] ?? '') .
+    '</td>';
+
+    $html .= '<td>' .
+        htmlspecialchars(
+            strval($sym['offset'] ?? '')
+        ) .
+    '</td>';
 
     $html .= '</tr>';
 }
@@ -72,7 +137,11 @@ $html .= '
 ';
 
 header('Content-Type: text/html');
-header('Content-Disposition: attachment; filename="tabla_simbolos.html"');
+
+header(
+    'Content-Disposition: attachment; filename="tabla_simbolos.html"'
+);
 
 echo $html;
+
 exit;

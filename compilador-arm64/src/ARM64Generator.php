@@ -8,6 +8,7 @@ class ARM64Generator
 
     private int $stringCounter = 0;
     private int $tempOffset = 200;
+    private int $labelCounter = 0;
 
     public function generate(array $program): string
     {
@@ -49,6 +50,15 @@ class ARM64Generator
         // user strings
 
         foreach ($this->strings as $label => $value) {
+
+            // remover comillas externas
+
+            if (
+                str_starts_with($value, '"')
+                && str_ends_with($value, '"')
+            ) {
+                $value = substr($value, 1, -1);
+            }
 
             $escaped = addslashes($value);
 
@@ -191,6 +201,11 @@ class ARM64Generator
         return $offset;
     }
 
+    private function newLabel(string $prefix = "L"): string
+    {
+        return $prefix . $this->labelCounter++;
+    }
+
     private function generateInstruction(array $instruction): void
     {
         switch ($instruction['op']) {
@@ -222,9 +237,13 @@ class ARM64Generator
                 $this->generateReturn($instruction);
                 break;
 
-            case 'CALL':
-                $this->generateCall($instruction);
+            case 'ARRAY_ASSIGN':
+                $this->generateArrayAssign($instruction);
                 break;
+
+            // case 'CALL':
+            //     $this->generateCall($instruction);
+            //     break;
         }
     }
 
@@ -233,10 +252,6 @@ class ARM64Generator
         // =====================================
         // CONST
         // =====================================
-
-        // =====================================
-// CONST
-// =====================================
 
         if ($expr['type'] === 'CONST') {
 
@@ -417,6 +432,209 @@ class ARM64Generator
             );
 
             return;
+        }
+
+        // =====================================
+        // UNARY
+        // =====================================
+
+        if ($expr['type'] === 'UNARY') {
+
+            $op = $expr['op'];
+
+            $this->comment(
+                "BEGIN UNARY OPERATION ($op)"
+            );
+
+            // evaluar expresión
+            $this->generateExpr(
+                $expr['expr']
+            );
+
+            switch ($op) {
+
+                // =========================
+                // NEGATION
+                // =========================
+
+                case '-':
+
+                    $this->comment(
+                        "w0 = -w0"
+                    );
+
+                    $this->emit(
+                        "    neg w0, w0"
+                    );
+
+                    break;
+
+                // =========================
+                // LOGICAL NOT
+                // =========================
+
+                case '!':
+
+                    $this->comment(
+                        "logical not"
+                    );
+
+                    $this->emit(
+                        "    cmp w0, #0"
+                    );
+
+                    $this->emit(
+                        "    cset w0, eq"
+                    );
+
+                    break;
+
+                default:
+
+                    throw new Exception(
+                        "Unsupported unary op: $op"
+                    );
+            }
+
+            $this->comment(
+                "END UNARY OPERATION ($op)"
+            );
+
+            return;
+        }
+
+        // =====================================
+// SHORT-CIRCUIT BOOLEAN
+// =====================================
+
+        if (
+            $expr['type'] === 'BINARY'
+            && in_array($expr['op'], ['&&', '||'])
+        ) {
+
+            $op = $expr['op'];
+
+            $falseLabel = $this->newLabel("bool_false_");
+            $trueLabel = $this->newLabel("bool_true_");
+            $endLabel = $this->newLabel("bool_end_");
+
+            $this->comment(
+                "BEGIN SHORT-CIRCUIT ($op)"
+            );
+
+            // =====================================
+            // &&
+            // =====================================
+
+            if ($op === '&&') {
+
+                // evaluate left
+                $this->generateExpr(
+                    $expr['left']
+                );
+
+                $this->emit(
+                    "    cmp w0, #0"
+                );
+
+                $this->emit(
+                    "    b.eq $falseLabel"
+                );
+
+                // evaluate right
+                $this->generateExpr(
+                    $expr['right']
+                );
+
+                $this->emit(
+                    "    cmp w0, #0"
+                );
+
+                $this->emit(
+                    "    b.eq $falseLabel"
+                );
+
+                // true
+                $this->emit(
+                    "    mov w0, #1"
+                );
+
+                $this->emit(
+                    "    b $endLabel"
+                );
+
+                // false
+                $this->emit("$falseLabel:");
+
+                $this->emit(
+                    "    mov w0, #0"
+                );
+
+                $this->emit("$endLabel:");
+
+                $this->comment(
+                    "END SHORT-CIRCUIT ($op)"
+                );
+
+                return;
+            }
+
+            // =====================================
+            // ||
+            // =====================================
+
+            if ($op === '||') {
+
+                // evaluate left
+                $this->generateExpr(
+                    $expr['left']
+                );
+
+                $this->emit(
+                    "    cmp w0, #0"
+                );
+
+                $this->emit(
+                    "    b.ne $trueLabel"
+                );
+
+                // evaluate right
+                $this->generateExpr(
+                    $expr['right']
+                );
+
+                $this->emit(
+                    "    cmp w0, #0"
+                );
+
+                $this->emit(
+                    "    b.ne $trueLabel"
+                );
+
+                // false
+                $this->emit(
+                    "    mov w0, #0"
+                );
+
+                $this->emit(
+                    "    b $endLabel"
+                );
+
+                // true
+                $this->emit("$trueLabel:");
+
+                $this->emit(
+                    "    mov w0, #1"
+                );
+
+                $this->emit("$endLabel:");
+
+                $this->comment(
+                    "END SHORT-CIRCUIT ($op)"
+                );
+
+                return;
+            }
         }
 
         // =====================================
@@ -807,82 +1025,164 @@ class ARM64Generator
         $this->emit("");
     }
 
+    private function generateArrayAssign(
+        array $instruction
+    ): void {
+
+        $this->comment(
+            "ARRAY ASSIGN {$instruction['name']}"
+        );
+
+        $baseOffset = abs(
+            $instruction['offset']
+        );
+
+        // =====================================
+        // INDEX
+        // =====================================
+
+        $this->generateExpr(
+            $instruction['index']
+        );
+
+        // w0 = index
+
+        // multiply index by 4
+        $this->emit(
+            "    lsl w0, w0, #2"
+        );
+
+        // preserve index offset
+        $this->emit(
+            "    mov x1, x0"
+        );
+
+        // =====================================
+        // VALUE
+        // =====================================
+
+        $this->generateExpr(
+            $instruction['value']
+        );
+
+        // w0 = value
+
+        // =====================================
+        // ADDRESS
+        // =====================================
+
+        $this->emit(
+            "    sub x2, x29, #$baseOffset"
+        );
+
+        $this->emit(
+            "    add x2, x2, x1"
+        );
+
+        // =====================================
+        // STORE
+        // =====================================
+
+        $this->emit(
+            "    str w0, [x2]"
+        );
+    }
+
     private function generateConditionBranch(
         array $condition,
         string $label
     ): void {
 
-        // solo soportamos BINARY comparisons
-        if ($condition['type'] !== 'BINARY') {
-            throw new Exception(
-                "Invalid branch condition"
+        // =====================================
+        // SPECIAL CASE:
+        // COMPARISON BINARY
+        // =====================================
+
+        if (
+            $condition['type'] === 'BINARY'
+            && in_array(
+                $condition['op'],
+                ['==', '!=', '<', '<=', '>', '>=']
+            )
+        ) {
+
+            $op = $condition['op'];
+
+            // evaluate left
+            $this->generateExpr(
+                $condition['left']
             );
+
+            $temp = $this->allocTemp();
+
+            $this->emit(
+                "    str w0, [x29, #-$temp]"
+            );
+
+            // evaluate right
+            $this->generateExpr(
+                $condition['right']
+            );
+
+            $this->emit(
+                "    ldr w1, [x29, #-$temp]"
+            );
+
+            $this->emit(
+                "    cmp w1, w0"
+            );
+
+            switch ($op) {
+
+                case '==':
+                    $branch = "b.eq";
+                    break;
+
+                case '!=':
+                    $branch = "b.ne";
+                    break;
+
+                case '<':
+                    $branch = "b.lt";
+                    break;
+
+                case '<=':
+                    $branch = "b.le";
+                    break;
+
+                case '>':
+                    $branch = "b.gt";
+                    break;
+
+                case '>=':
+                    $branch = "b.ge";
+                    break;
+
+                default:
+                    throw new Exception(
+                        "Invalid comparison operator"
+                    );
+            }
+
+            $this->emit(
+                "    $branch $label"
+            );
+
+            return;
         }
 
-        $op = $condition['op'];
+        // =====================================
+        // GENERIC TRUTHY CONDITION
+        // =====================================
 
-        // evaluar left
-        $this->generateExpr(
-            $condition['left']
-        );
-
-        // push left
-        $temp = $this->allocTemp();
+        $this->generateExpr($condition);
 
         $this->emit(
-            "    str w0, [x29, #-$temp]"
+            "    cmp w0, #0"
         );
-
-        // evaluar right
-        $this->generateExpr(
-            $condition['right']
-        );
-
-        // pop left -> w1
-        $this->emit(
-            "    ldr w1, [x29, #-$temp]"
-        );
-
-        // comparar
-        $this->emit(
-            "    cmp w1, w0"
-        );
-
-        // branch según operador
-        switch ($op) {
-
-            case '==':
-                $branch = "b.eq";
-                break;
-
-            case '!=':
-                $branch = "b.ne";
-                break;
-
-            case '<':
-                $branch = "b.lt";
-                break;
-
-            case '<=':
-                $branch = "b.le";
-                break;
-
-            case '>':
-                $branch = "b.gt";
-                break;
-
-            case '>=':
-                $branch = "b.ge";
-                break;
-
-            default:
-                throw new Exception(
-                    "Invalid comparison operator: $op"
-                );
-        }
 
         $this->emit(
-            "    $branch $label"
+            "    b.ne $label"
         );
     }
 

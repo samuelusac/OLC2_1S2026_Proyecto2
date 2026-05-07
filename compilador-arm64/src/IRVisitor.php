@@ -241,11 +241,29 @@ class IRVisitor extends GolampiBaseVisitor
 
             $result = $this->visit($stmt);
 
-            if (is_array($result) && isset($result[0])) {
-                $instructions = array_merge($instructions, $result);
-            } else {
-                $instructions[] = $result;
+            // skip null
+            if ($result === null) {
+                continue;
             }
+
+            // multiple instructions
+            if (
+                is_array($result)
+                && array_is_list($result)
+            ) {
+
+                foreach ($result as $inst) {
+
+                    if ($inst !== null) {
+                        $instructions[] = $inst;
+                    }
+                }
+
+                continue;
+            }
+
+            // single instruction
+            $instructions[] = $result;
         }
 
         $this->symbolTable->exitScope();
@@ -499,21 +517,50 @@ class IRVisitor extends GolampiBaseVisitor
 
     public function visitArrayAssignment($ctx)
     {
-        $indices = [];
+        $name = $ctx->ID()->getText();
 
-        $exprs = $ctx->expr();
+        // buscar símbolo
+        $symbol = $this->symbolTable->lookup($name);
 
-        for ($i = 0; $i < count($exprs) - 1; $i++) {
-            $indices[] = $this->visit($exprs[$i]);
+        if (!$symbol) {
+
+            $this->semanticError(
+                $ctx,
+                "Array no definido: $name"
+            );
+
+            return [
+                "type" => "ERROR"
+            ];
         }
 
-        $value = $this->visit($exprs[count($exprs) - 1]);
+        // =====================================
+        // INDEX
+        // =====================================
+
+        $indexExpr = $this->visit(
+            $ctx->expr(0)
+        );
+
+        // =====================================
+        // VALUE
+        // =====================================
+
+        $valueExpr = $this->visit(
+            $ctx->expr(1)
+        );
 
         return [
+
             "op" => "ARRAY_ASSIGN",
-            "array" => $ctx->ID()->getText(),
-            "indices" => $indices,
-            "value" => $value
+
+            "name" => $name,
+
+            "offset" => $symbol['offset'] ?? 0,
+
+            "index" => $indexExpr,
+
+            "value" => $valueExpr
         ];
     }
 
@@ -594,11 +641,14 @@ class IRVisitor extends GolampiBaseVisitor
         $ids = $ctx->idList()->ID();
 
         $type = $this->visit($ctx->type());
+        
 
         $values = [];
 
         if ($ctx->exprList()) {
+
             foreach ($ctx->exprList()->expr() as $exprCtx) {
+
                 $values[] = $this->visit($exprCtx);
             }
         }
@@ -611,34 +661,77 @@ class IRVisitor extends GolampiBaseVisitor
 
             $value = $values[$i] ?? null;
 
-            $offset = $this->currentFrame->allocate($name);
+            // =====================================
+            // ALLOCATE IN STACK FRAME
+            // =====================================
+
+            $offset = $this->currentFrame->allocate(
+                $name,
+                $type
+            );
+
+            // =====================================
+            // DECLARE SYMBOL
+            // =====================================
 
             try {
 
                 $this->symbolTable->declare($name, [
+
                     "type" => $type,
+
                     "kind" => "local",
+
                     "offset" => $offset
                 ]);
 
             } catch (Exception $e) {
 
-                $this->semanticError($ctx, $e->getMessage());
+                $this->semanticError(
+                    $ctx,
+                    $e->getMessage()
+                );
             }
 
-            // $this->symbolTable->declare($name, [
-            //     "type" => $type,
-            //     "kind" => "local",
-            //     "offset" => $offset
-            // ]);
+            // =====================================
+            // ARRAYS
+            // =====================================
+
+            if (
+                is_array($type)
+                && ($type['kind'] ?? '') === 'array'
+            ) {
+
+                // arrays solo reservan espacio
+                // no generan ASSIGN
+
+                continue;
+            }
+
+            // =====================================
+            // NORMAL VARIABLE
+            // =====================================
 
             $instructions[] = [
+
                 "op" => "ASSIGN",
+
                 "name" => $name,
+
                 "offset" => $offset,
+
                 "varType" => $type,
+
                 "value" => $value
             ];
+        }
+
+        // =====================================
+        // EMPTY
+        // =====================================
+
+        if (empty($instructions)) {
+            return null;
         }
 
         return $instructions;
@@ -736,33 +829,61 @@ class IRVisitor extends GolampiBaseVisitor
     {
         $name = $ctx->ID()->getText();
 
+        $symbol = $this->symbolTable->lookup($name);
+
+        if (!$symbol) {
+
+            $this->semanticError(
+                $ctx,
+                "Variable no definida: $name"
+            );
+
+            return [
+                "type" => "ERROR"
+            ];
+        }
+
+        $offset = $symbol['offset'] ?? 0;
+
         $op = $ctx->assignOp()->getText();
 
         $value = $this->visit($ctx->expr());
 
-        // asignación simple
+        // =====================================
+        // SIMPLE ASSIGN
+        // =====================================
+
         if ($op === '=') {
 
             return [
                 "op" => "ASSIGN",
                 "name" => $name,
+                "offset" => $offset,
                 "value" => $value
             ];
         }
 
-        // convertir += a +
+        // =====================================
+        // COMPOUND ASSIGN
+        // =====================================
+
         $binaryOp = substr($op, 0, 1);
 
         return [
             "op" => "ASSIGN",
             "name" => $name,
+            "offset" => $offset,
+
             "value" => [
+
                 "type" => "BINARY",
+
                 "op" => $binaryOp,
 
                 "left" => [
                     "type" => "VAR",
-                    "name" => $name
+                    "name" => $name,
+                    "offset" => $offset
                 ],
 
                 "right" => $value
@@ -870,23 +991,49 @@ class IRVisitor extends GolampiBaseVisitor
     {
         $name = $ctx->ID()->getText();
 
+        $symbol = $this->symbolTable->lookup($name);
+
+        if (!$symbol) {
+
+            $this->semanticError(
+                $ctx,
+                "Variable no definida: $name"
+            );
+
+            return [
+                "type" => "ERROR"
+            ];
+        }
+
+        $offset = $symbol['offset'] ?? 0;
+
         $op = $ctx->getChild(1)->getText();
 
         $binaryOp = $op === '++' ? '+' : '-';
 
         return [
+
             "op" => "ASSIGN",
+
             "name" => $name,
+
+            "offset" => $offset,
+
             "value" => [
+
                 "type" => "BINARY",
+
                 "op" => $binaryOp,
+
                 "left" => [
                     "type" => "VAR",
-                    "name" => $name
+                    "name" => $name,
+                    "offset" => $offset
                 ],
+
                 "right" => [
                     "type" => "CONST",
-                    "value" => "1"
+                    "value" => 1
                 ]
             ]
         ];
