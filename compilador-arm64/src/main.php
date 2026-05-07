@@ -4,24 +4,35 @@ require_once 'ARM64Generator.php';
 
 $ir = [
 
+    // i = 1
+
     [
         "op" => "ASSIGN",
-        "name" => "a",
+        "name" => "i",
         "offset" => -16,
         "value" => [
             "type" => "CONST",
-            "value" => 10
+            "value" => 1
         ]
     ],
+
+    // L0:
+
+    [
+        "op" => "LABEL",
+        "name" => "L0"
+    ],
+
+    // if i <= 5 goto L1
 
     [
         "op" => "IF_GOTO",
         "condition" => [
             "type" => "BINARY",
-            "op" => ">",
+            "op" => "<=",
             "left" => [
                 "type" => "VAR",
-                "name" => "a",
+                "name" => "i",
                 "offset" => -16
             ],
             "right" => [
@@ -29,32 +40,69 @@ $ir = [
                 "value" => 5
             ]
         ],
-        "label" => "L0"
-    ],
-
-    [
-        "op" => "GOTO",
         "label" => "L1"
     ],
 
+    // goto L2
+
+    [
+        "op" => "GOTO",
+        "label" => "L2"
+    ],
+
+    // L1:
+
     [
         "op" => "LABEL",
-        "name" => "L0"
+        "name" => "L1"
     ],
+
+    // print(i)
 
     [
         "op" => "PRINT",
         "values" => [
             [
-                "type" => "STRING",
-                "value" => "CONDICION VERDADERA"
+                "type" => "VAR",
+                "name" => "i",
+                "offset" => -16
             ]
         ]
     ],
 
+    // i = i + 1
+
+    [
+        "op" => "ASSIGN",
+        "name" => "i",
+        "offset" => -16,
+        "value" => [
+            "type" => "BINARY",
+            "op" => "+",
+            "left" => [
+                "type" => "VAR",
+                "name" => "i",
+                "offset" => -16
+            ],
+            "right" => [
+                "type" => "CONST",
+                "value" => 1
+            ]
+        ]
+    ],
+
+    // goto L0
+
+    [
+        "op" => "GOTO",
+        "label" => "L0"
+    ],
+
+    // L2:
+
     [
         "op" => "LABEL",
-        "name" => "L1"
+        "name" => "L2"
     ]
 ];
 

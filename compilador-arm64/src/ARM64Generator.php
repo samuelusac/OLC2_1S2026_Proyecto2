@@ -465,23 +465,89 @@ class ARM64Generator
             "if condition goto $label"
         );
 
-        // evaluar condición
-        // resultado queda en w0
-        $this->generateExpr(
-            $instruction['condition']
-        );
-
-        // comparar resultado con true (1)
-        $this->emit(
-            "    cmp w0, #1"
-        );
-
-        // branch if equal
-        $this->emit(
-            "    b.eq $label"
+        $this->generateConditionBranch(
+            $instruction['condition'],
+            $label
         );
 
         $this->emit("");
+    }
+
+    private function generateConditionBranch(
+        array $condition,
+        string $label
+    ): void {
+
+        // solo soportamos BINARY comparisons
+        if ($condition['type'] !== 'BINARY') {
+            throw new Exception(
+                "Invalid branch condition"
+            );
+        }
+
+        $op = $condition['op'];
+
+        // evaluar left
+        $this->generateExpr(
+            $condition['left']
+        );
+
+        // push left
+        $this->emit(
+            "    str w0, [sp, #-16]!"
+        );
+
+        // evaluar right
+        $this->generateExpr(
+            $condition['right']
+        );
+
+        // pop left -> w1
+        $this->emit(
+            "    ldr w1, [sp], #16"
+        );
+
+        // comparar
+        $this->emit(
+            "    cmp w1, w0"
+        );
+
+        // branch según operador
+        switch ($op) {
+
+            case '==':
+                $branch = "b.eq";
+                break;
+
+            case '!=':
+                $branch = "b.ne";
+                break;
+
+            case '<':
+                $branch = "b.lt";
+                break;
+
+            case '<=':
+                $branch = "b.le";
+                break;
+
+            case '>':
+                $branch = "b.gt";
+                break;
+
+            case '>=':
+                $branch = "b.ge";
+                break;
+
+            default:
+                throw new Exception(
+                    "Invalid comparison operator: $op"
+                );
+        }
+
+        $this->emit(
+            "    $branch $label"
+        );
     }
 
     private function newString(string $value): string
