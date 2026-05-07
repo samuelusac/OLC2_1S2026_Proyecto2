@@ -1,13 +1,9 @@
 #!/bin/bash
 
-# crear carpeta build
 mkdir -p build
 
-# ensamblar
-aarch64-linux-gnu-as -o build/main.o main.asm
+aarch64-linux-gnu-as main.asm -o build/main.o
 
-# linkear (IMPORTANTE: entrypoint _start)
-aarch64-linux-gnu-ld -o build/main build/main.o -e _start
+aarch64-linux-gnu-gcc build/main.o -o build/main
 
-# ejecutar
-qemu-aarch64 build/main
+qemu-aarch64 -L /usr/aarch64-linux-gnu build/main

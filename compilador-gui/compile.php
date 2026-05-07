@@ -48,6 +48,8 @@ try {
 
             require_once __DIR__ . '/../compilador-arm64/src/IRVisitor.php';
 
+            require_once __DIR__ . '/../compilador-arm64/src/ARM64Generator.php';
+
 
 
 
@@ -109,6 +111,29 @@ try {
                 $_SESSION['symbols'] = $symbols;
 
                 $semanticErrors = $visitor->getErrors();
+
+                // =====================================
+                // GENERAR ASM
+                // =====================================
+
+                $generator = new ARM64Generator();
+
+                $asm = $generator->generate($ir);
+
+
+                // =====================================
+                // GUARDAR ASM
+                // =====================================
+
+                file_put_contents(
+                    __DIR__ . '/../compilador-arm64/output/main.asm',
+                    $asm
+                );
+
+
+                // =====================================
+                // MOSTRAR IR
+                // =====================================
 
                 $_SESSION['output'] = json_encode($ir, JSON_PRETTY_PRINT);
             }
