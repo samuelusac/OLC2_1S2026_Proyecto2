@@ -16,14 +16,14 @@ $ir = [
         ]
     ],
 
-    // L0:
+    // condition
 
     [
         "op" => "LABEL",
         "name" => "L0"
     ],
 
-    // if i <= 10 goto L1
+    // if i <= 6 goto body
 
     [
         "op" => "IF_GOTO",
@@ -37,13 +37,13 @@ $ir = [
             ],
             "right" => [
                 "type" => "CONST",
-                "value" => 10
+                "value" => 6
             ]
         ],
         "label" => "L1"
     ],
 
-    // goto exit
+    // exit
 
     [
         "op" => "GOTO",
@@ -57,27 +57,41 @@ $ir = [
         "name" => "L1"
     ],
 
-    // if i == 5 goto break
+    // if i % 2 == 0 goto continue
 
     [
         "op" => "IF_GOTO",
         "condition" => [
+
             "type" => "BINARY",
             "op" => "==",
+
             "left" => [
-                "type" => "VAR",
-                "name" => "i",
-                "offset" => -16
+
+                "type" => "BINARY",
+                "op" => "%",
+
+                "left" => [
+                    "type" => "VAR",
+                    "name" => "i",
+                    "offset" => -16
+                ],
+
+                "right" => [
+                    "type" => "CONST",
+                    "value" => 2
+                ]
             ],
+
             "right" => [
                 "type" => "CONST",
-                "value" => 5
+                "value" => 0
             ]
         ],
-        "label" => "L_BREAK"
+        "label" => "L_CONTINUE"
     ],
 
-    // print(i)
+    // print odd numbers
 
     [
         "op" => "PRINT",
@@ -97,7 +111,7 @@ $ir = [
         "name" => "L_CONTINUE"
     ],
 
-    // i = i + 1
+    // increment
 
     [
         "op" => "ASSIGN",
@@ -118,31 +132,14 @@ $ir = [
         ]
     ],
 
-    // goto condition
+    // back edge
 
     [
         "op" => "GOTO",
         "label" => "L0"
     ],
 
-    // break target
-
-    [
-        "op" => "LABEL",
-        "name" => "L_BREAK"
-    ],
-
-    [
-        "op" => "PRINT",
-        "values" => [
-            [
-                "type" => "STRING",
-                "value" => "BREAK EJECUTADO"
-            ]
-        ]
-    ],
-
-    // exit
+    // exit label
 
     [
         "op" => "LABEL",

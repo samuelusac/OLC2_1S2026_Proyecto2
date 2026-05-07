@@ -19,8 +19,8 @@ L0:
     // load i
     ldr w0, [x29, #-16]
     str w0, [sp, #-16]!
-    // const 10
-    mov w0, #10
+    // const 6
+    mov w0, #6
     ldr w1, [sp], #16
     cmp w1, w0
     b.le L1
@@ -30,15 +30,29 @@ L0:
 
 
 L1:
-    // if condition goto L_BREAK
+    // if condition goto L_CONTINUE
+    // BEGIN BINARY OPERATION (%)
+    // evaluate left operand
     // load i
     ldr w0, [x29, #-16]
+    // push left operand
     str w0, [sp, #-16]!
-    // const 5
-    mov w0, #5
+    // evaluate right operand
+    // const 2
+    mov w0, #2
+    // pop left operand into w1
+    ldr w1, [sp], #16
+    // w2 = w1 / w0
+    sdiv w2, w1, w0
+    // w0 = w1 - (w2 * w0)
+    msub w0, w2, w0, w1
+    // END BINARY OPERATION (%)
+    str w0, [sp, #-16]!
+    // const 0
+    mov w0, #0
     ldr w1, [sp], #16
     cmp w1, w0
-    b.eq L_BREAK
+    b.eq L_CONTINUE
 
     // fmt.Println(i)
     ldr x0, =fmt_int
@@ -68,12 +82,6 @@ L_CONTINUE:
     b L0
 
 
-L_BREAK:
-    // fmt.Println("BREAK EJECUTADO")
-    ldr x0, =msg0
-    bl puts
-
-
 L_EXIT:
     // return 0
     mov w0, #0
@@ -88,5 +96,3 @@ L_EXIT:
 fmt_int:
     .asciz "%d\n"
 
-msg0:
-    .asciz "BREAK EJECUTADO"
