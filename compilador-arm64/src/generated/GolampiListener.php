@@ -362,137 +362,95 @@ interface GolampiListener extends ParseTreeListener {
 	 */
 	public function exitArgumentList(Context\ArgumentListContext $context): void;
 	/**
-	 * Enter a parse tree produced by the `LogicalNot`
-	 * labeled alternative in {@see GolampiParser::expr()}.
+	 * Enter a parse tree produced by {@see GolampiParser::expr()}.
 	 * @param $context The parse tree.
 	 */
-	public function enterLogicalNot(Context\LogicalNotContext $context): void;
+	public function enterExpr(Context\ExprContext $context): void;
 	/**
-	 * Exit a parse tree produced by the `LogicalNot` labeled alternative
-	 * in {@see GolampiParser::expr()}.
+	 * Exit a parse tree produced by {@see GolampiParser::expr()}.
 	 * @param $context The parse tree.
 	 */
-	public function exitLogicalNot(Context\LogicalNotContext $context): void;
+	public function exitExpr(Context\ExprContext $context): void;
 	/**
-	 * Enter a parse tree produced by the `ArrayAccess`
-	 * labeled alternative in {@see GolampiParser::expr()}.
+	 * Enter a parse tree produced by {@see GolampiParser::logicalOrExpr()}.
 	 * @param $context The parse tree.
 	 */
-	public function enterArrayAccess(Context\ArrayAccessContext $context): void;
+	public function enterLogicalOrExpr(Context\LogicalOrExprContext $context): void;
 	/**
-	 * Exit a parse tree produced by the `ArrayAccess` labeled alternative
-	 * in {@see GolampiParser::expr()}.
+	 * Exit a parse tree produced by {@see GolampiParser::logicalOrExpr()}.
 	 * @param $context The parse tree.
 	 */
-	public function exitArrayAccess(Context\ArrayAccessContext $context): void;
+	public function exitLogicalOrExpr(Context\LogicalOrExprContext $context): void;
 	/**
-	 * Enter a parse tree produced by the `AddSub`
-	 * labeled alternative in {@see GolampiParser::expr()}.
+	 * Enter a parse tree produced by {@see GolampiParser::logicalAndExpr()}.
 	 * @param $context The parse tree.
 	 */
-	public function enterAddSub(Context\AddSubContext $context): void;
+	public function enterLogicalAndExpr(Context\LogicalAndExprContext $context): void;
 	/**
-	 * Exit a parse tree produced by the `AddSub` labeled alternative
-	 * in {@see GolampiParser::expr()}.
+	 * Exit a parse tree produced by {@see GolampiParser::logicalAndExpr()}.
 	 * @param $context The parse tree.
 	 */
-	public function exitAddSub(Context\AddSubContext $context): void;
+	public function exitLogicalAndExpr(Context\LogicalAndExprContext $context): void;
 	/**
-	 * Enter a parse tree produced by the `MulDiv`
-	 * labeled alternative in {@see GolampiParser::expr()}.
+	 * Enter a parse tree produced by {@see GolampiParser::equalityExpr()}.
 	 * @param $context The parse tree.
 	 */
-	public function enterMulDiv(Context\MulDivContext $context): void;
+	public function enterEqualityExpr(Context\EqualityExprContext $context): void;
 	/**
-	 * Exit a parse tree produced by the `MulDiv` labeled alternative
-	 * in {@see GolampiParser::expr()}.
+	 * Exit a parse tree produced by {@see GolampiParser::equalityExpr()}.
 	 * @param $context The parse tree.
 	 */
-	public function exitMulDiv(Context\MulDivContext $context): void;
+	public function exitEqualityExpr(Context\EqualityExprContext $context): void;
 	/**
-	 * Enter a parse tree produced by the `Parens`
-	 * labeled alternative in {@see GolampiParser::expr()}.
+	 * Enter a parse tree produced by {@see GolampiParser::relationalExpr()}.
 	 * @param $context The parse tree.
 	 */
-	public function enterParens(Context\ParensContext $context): void;
+	public function enterRelationalExpr(Context\RelationalExprContext $context): void;
 	/**
-	 * Exit a parse tree produced by the `Parens` labeled alternative
-	 * in {@see GolampiParser::expr()}.
+	 * Exit a parse tree produced by {@see GolampiParser::relationalExpr()}.
 	 * @param $context The parse tree.
 	 */
-	public function exitParens(Context\ParensContext $context): void;
+	public function exitRelationalExpr(Context\RelationalExprContext $context): void;
 	/**
-	 * Enter a parse tree produced by the `IdentifierExpr`
-	 * labeled alternative in {@see GolampiParser::expr()}.
+	 * Enter a parse tree produced by {@see GolampiParser::additiveExpr()}.
 	 * @param $context The parse tree.
 	 */
-	public function enterIdentifierExpr(Context\IdentifierExprContext $context): void;
+	public function enterAdditiveExpr(Context\AdditiveExprContext $context): void;
 	/**
-	 * Exit a parse tree produced by the `IdentifierExpr` labeled alternative
-	 * in {@see GolampiParser::expr()}.
+	 * Exit a parse tree produced by {@see GolampiParser::additiveExpr()}.
 	 * @param $context The parse tree.
 	 */
-	public function exitIdentifierExpr(Context\IdentifierExprContext $context): void;
+	public function exitAdditiveExpr(Context\AdditiveExprContext $context): void;
 	/**
-	 * Enter a parse tree produced by the `LogicalAnd`
-	 * labeled alternative in {@see GolampiParser::expr()}.
+	 * Enter a parse tree produced by {@see GolampiParser::multiplicativeExpr()}.
 	 * @param $context The parse tree.
 	 */
-	public function enterLogicalAnd(Context\LogicalAndContext $context): void;
+	public function enterMultiplicativeExpr(Context\MultiplicativeExprContext $context): void;
 	/**
-	 * Exit a parse tree produced by the `LogicalAnd` labeled alternative
-	 * in {@see GolampiParser::expr()}.
+	 * Exit a parse tree produced by {@see GolampiParser::multiplicativeExpr()}.
 	 * @param $context The parse tree.
 	 */
-	public function exitLogicalAnd(Context\LogicalAndContext $context): void;
+	public function exitMultiplicativeExpr(Context\MultiplicativeExprContext $context): void;
 	/**
-	 * Enter a parse tree produced by the `Relational`
-	 * labeled alternative in {@see GolampiParser::expr()}.
+	 * Enter a parse tree produced by {@see GolampiParser::unaryExpr()}.
 	 * @param $context The parse tree.
 	 */
-	public function enterRelational(Context\RelationalContext $context): void;
+	public function enterUnaryExpr(Context\UnaryExprContext $context): void;
 	/**
-	 * Exit a parse tree produced by the `Relational` labeled alternative
-	 * in {@see GolampiParser::expr()}.
+	 * Exit a parse tree produced by {@see GolampiParser::unaryExpr()}.
 	 * @param $context The parse tree.
 	 */
-	public function exitRelational(Context\RelationalContext $context): void;
+	public function exitUnaryExpr(Context\UnaryExprContext $context): void;
 	/**
-	 * Enter a parse tree produced by the `LiteralExpr`
-	 * labeled alternative in {@see GolampiParser::expr()}.
+	 * Enter a parse tree produced by {@see GolampiParser::primaryExpr()}.
 	 * @param $context The parse tree.
 	 */
-	public function enterLiteralExpr(Context\LiteralExprContext $context): void;
+	public function enterPrimaryExpr(Context\PrimaryExprContext $context): void;
 	/**
-	 * Exit a parse tree produced by the `LiteralExpr` labeled alternative
-	 * in {@see GolampiParser::expr()}.
+	 * Exit a parse tree produced by {@see GolampiParser::primaryExpr()}.
 	 * @param $context The parse tree.
 	 */
-	public function exitLiteralExpr(Context\LiteralExprContext $context): void;
-	/**
-	 * Enter a parse tree produced by the `Equality`
-	 * labeled alternative in {@see GolampiParser::expr()}.
-	 * @param $context The parse tree.
-	 */
-	public function enterEquality(Context\EqualityContext $context): void;
-	/**
-	 * Exit a parse tree produced by the `Equality` labeled alternative
-	 * in {@see GolampiParser::expr()}.
-	 * @param $context The parse tree.
-	 */
-	public function exitEquality(Context\EqualityContext $context): void;
-	/**
-	 * Enter a parse tree produced by the `LogicalOr`
-	 * labeled alternative in {@see GolampiParser::expr()}.
-	 * @param $context The parse tree.
-	 */
-	public function enterLogicalOr(Context\LogicalOrContext $context): void;
-	/**
-	 * Exit a parse tree produced by the `LogicalOr` labeled alternative
-	 * in {@see GolampiParser::expr()}.
-	 * @param $context The parse tree.
-	 */
-	public function exitLogicalOr(Context\LogicalOrContext $context): void;
+	public function exitPrimaryExpr(Context\PrimaryExprContext $context): void;
 	/**
 	 * Enter a parse tree produced by {@see GolampiParser::literal()}.
 	 * @param $context The parse tree.

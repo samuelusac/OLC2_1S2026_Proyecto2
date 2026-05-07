@@ -940,11 +940,113 @@ class IRVisitor extends GolampiBaseVisitor
         return $this->buildBinaryExpr($ctx);
     }
 
-    public function visitRelational($ctx)
+    // public function visitRelational($ctx)
+    // {
+    //     return $this->buildBinaryExpr($ctx);
+    // }
+
+    private function buildLeftAssociativeBinary($ctx)
     {
-        return $this->buildBinaryExpr($ctx);
+        $result = $this->visit($ctx->getChild(0));
+
+        for ($i = 1; $i < $ctx->getChildCount(); $i += 2) {
+
+            $op = $ctx->getChild($i)->getText();
+
+            $right = $this->visit($ctx->getChild($i + 1));
+
+            $result = [
+                "type" => "BINARY",
+                "op" => $op,
+                "left" => $result,
+                "right" => $right
+            ];
+        }
+
+        return $result;
     }
 
+    public function visitLogicalOrExpr($ctx)
+    {
+        return $this->buildLeftAssociativeBinary($ctx);
+    }
+
+    public function visitLogicalAndExpr($ctx)
+    {
+        return $this->buildLeftAssociativeBinary($ctx);
+    }
+
+    public function visitEqualityExpr($ctx)
+    {
+        return $this->buildLeftAssociativeBinary($ctx);
+    }
+
+    public function visitRelationalExpr($ctx)
+    {
+        return $this->buildLeftAssociativeBinary($ctx);
+    }
+
+    public function visitAdditiveExpr($ctx)
+    {
+        return $this->buildLeftAssociativeBinary($ctx);
+    }
+
+    public function visitMultiplicativeExpr($ctx)
+    {
+        return $this->buildLeftAssociativeBinary($ctx);
+    }
+
+    public function visitUnaryExpr($ctx)
+    {
+        if ($ctx->getChildCount() == 2) {
+
+            return [
+                "type" => "UNARY",
+                "op" => $ctx->getChild(0)->getText(),
+                "expr" => $this->visit($ctx->getChild(1))
+            ];
+        }
+
+        return $this->visitChildren($ctx);
+    }
+
+    public function visitPrimaryExpr($ctx)
+    {
+        if ($ctx->expr()) {
+            return $this->visit($ctx->expr());
+        }
+
+        if ($ctx->literal()) {
+            return $this->visit($ctx->literal());
+        }
+
+        if ($ctx->ID()) {
+
+            $name = $ctx->ID()->getText();
+
+            $symbol = $this->symbolTable->lookup($name);
+
+            if (!$symbol) {
+
+                $this->semanticError(
+                    $ctx,
+                    "Variable no definida: $name"
+                );
+
+                return [
+                    "type" => "ERROR"
+                ];
+            }
+
+            return [
+                "type" => "VAR",
+                "name" => $name,
+                "offset" => $symbol["offset"] ?? 0
+            ];
+        }
+
+        return $this->visitChildren($ctx);
+    }
     private function buildBinaryExpr($ctx)
     {
         return [
@@ -955,15 +1057,15 @@ class IRVisitor extends GolampiBaseVisitor
         ];
     }
 
-    public function visitMulDiv($ctx)
-    {
-        return $this->buildBinaryExpr($ctx);
-    }
+    // public function visitMulDiv($ctx)
+    // {
+    //     return $this->buildBinaryExpr($ctx);
+    // }
 
-    public function visitAddSub($ctx)
-    {
-        return $this->buildBinaryExpr($ctx);
-    }
+    // public function visitAddSub($ctx)
+    // {
+    //     return $this->buildBinaryExpr($ctx);
+    // }
 
     public function visitLogicalNot($ctx)
     {

@@ -404,7 +404,7 @@ class GolampiBaseVisitor extends AbstractParseTreeVisitor implements GolampiVisi
 	 * The default implementation returns the result of calling
 	 * {@see self::visitChildren()} on `context`.
 	 */
-	public function visitLogicalNot(Context\LogicalNotContext $context)
+	public function visitExpr(Context\ExprContext $context)
 	{
 	    return $this->visitChildren($context);
 	}
@@ -415,7 +415,7 @@ class GolampiBaseVisitor extends AbstractParseTreeVisitor implements GolampiVisi
 	 * The default implementation returns the result of calling
 	 * {@see self::visitChildren()} on `context`.
 	 */
-	public function visitArrayAccess(Context\ArrayAccessContext $context)
+	public function visitLogicalOrExpr(Context\LogicalOrExprContext $context)
 	{
 	    return $this->visitChildren($context);
 	}
@@ -426,7 +426,7 @@ class GolampiBaseVisitor extends AbstractParseTreeVisitor implements GolampiVisi
 	 * The default implementation returns the result of calling
 	 * {@see self::visitChildren()} on `context`.
 	 */
-	public function visitAddSub(Context\AddSubContext $context)
+	public function visitLogicalAndExpr(Context\LogicalAndExprContext $context)
 	{
 	    return $this->visitChildren($context);
 	}
@@ -437,7 +437,7 @@ class GolampiBaseVisitor extends AbstractParseTreeVisitor implements GolampiVisi
 	 * The default implementation returns the result of calling
 	 * {@see self::visitChildren()} on `context`.
 	 */
-	public function visitMulDiv(Context\MulDivContext $context)
+	public function visitEqualityExpr(Context\EqualityExprContext $context)
 	{
 	    return $this->visitChildren($context);
 	}
@@ -448,7 +448,7 @@ class GolampiBaseVisitor extends AbstractParseTreeVisitor implements GolampiVisi
 	 * The default implementation returns the result of calling
 	 * {@see self::visitChildren()} on `context`.
 	 */
-	public function visitParens(Context\ParensContext $context)
+	public function visitRelationalExpr(Context\RelationalExprContext $context)
 	{
 	    return $this->visitChildren($context);
 	}
@@ -459,7 +459,7 @@ class GolampiBaseVisitor extends AbstractParseTreeVisitor implements GolampiVisi
 	 * The default implementation returns the result of calling
 	 * {@see self::visitChildren()} on `context`.
 	 */
-	public function visitIdentifierExpr(Context\IdentifierExprContext $context)
+	public function visitAdditiveExpr(Context\AdditiveExprContext $context)
 	{
 	    return $this->visitChildren($context);
 	}
@@ -470,7 +470,7 @@ class GolampiBaseVisitor extends AbstractParseTreeVisitor implements GolampiVisi
 	 * The default implementation returns the result of calling
 	 * {@see self::visitChildren()} on `context`.
 	 */
-	public function visitLogicalAnd(Context\LogicalAndContext $context)
+	public function visitMultiplicativeExpr(Context\MultiplicativeExprContext $context)
 	{
 	    return $this->visitChildren($context);
 	}
@@ -481,7 +481,7 @@ class GolampiBaseVisitor extends AbstractParseTreeVisitor implements GolampiVisi
 	 * The default implementation returns the result of calling
 	 * {@see self::visitChildren()} on `context`.
 	 */
-	public function visitRelational(Context\RelationalContext $context)
+	public function visitUnaryExpr(Context\UnaryExprContext $context)
 	{
 	    return $this->visitChildren($context);
 	}
@@ -492,29 +492,7 @@ class GolampiBaseVisitor extends AbstractParseTreeVisitor implements GolampiVisi
 	 * The default implementation returns the result of calling
 	 * {@see self::visitChildren()} on `context`.
 	 */
-	public function visitLiteralExpr(Context\LiteralExprContext $context)
-	{
-	    return $this->visitChildren($context);
-	}
-
-	/**
-	 * {@inheritdoc}
-	 *
-	 * The default implementation returns the result of calling
-	 * {@see self::visitChildren()} on `context`.
-	 */
-	public function visitEquality(Context\EqualityContext $context)
-	{
-	    return $this->visitChildren($context);
-	}
-
-	/**
-	 * {@inheritdoc}
-	 *
-	 * The default implementation returns the result of calling
-	 * {@see self::visitChildren()} on `context`.
-	 */
-	public function visitLogicalOr(Context\LogicalOrContext $context)
+	public function visitPrimaryExpr(Context\PrimaryExprContext $context)
 	{
 	    return $this->visitChildren($context);
 	}

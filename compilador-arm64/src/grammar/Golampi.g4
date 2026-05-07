@@ -174,31 +174,42 @@ argumentList
 // =====================
 
 expr
-    : expr '||' expr      # LogicalOr
-    | expr '&&' expr      # LogicalAnd
+    : logicalOrExpr
+    ;
 
-    | expr '==' expr      # Equality
-    | expr '!=' expr      # Equality
+logicalOrExpr
+    : logicalAndExpr ('||' logicalAndExpr)*
+    ;
 
-    | expr '<' expr       # Relational
-    | expr '>' expr       # Relational
-    | expr '<=' expr      # Relational
-    | expr '>=' expr      # Relational
+logicalAndExpr
+    : equalityExpr ('&&' equalityExpr)*
+    ;
 
-    | expr '+' expr       # AddSub
-    | expr '-' expr       # AddSub
+equalityExpr
+    : relationalExpr (('==' | '!=') relationalExpr)*
+    ;
 
-    | expr '*' expr       # MulDiv
-    | expr '/' expr       # MulDiv
-    | expr '%' expr       # MulDiv
+relationalExpr
+    : additiveExpr (('<' | '>' | '<=' | '>=') additiveExpr)*
+    ;
 
-    | '!' expr            # LogicalNot
+additiveExpr
+    : multiplicativeExpr (('+' | '-') multiplicativeExpr)*
+    ;
 
-    | '(' expr ')'        # Parens
+multiplicativeExpr
+    : unaryExpr (('*' | '/' | '%') unaryExpr)*
+    ;
 
-    | literal                 # LiteralExpr
-    | ID ('[' expr ']')+      # ArrayAccess
-    | ID                      # IdentifierExpr
+unaryExpr
+    : '!' unaryExpr
+    | primaryExpr
+    ;
+
+primaryExpr
+    : '(' expr ')'
+    | literal
+    | ID
     ;
 
 literal
