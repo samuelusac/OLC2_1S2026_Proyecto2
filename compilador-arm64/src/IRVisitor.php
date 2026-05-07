@@ -641,7 +641,7 @@ class IRVisitor extends GolampiBaseVisitor
         $ids = $ctx->idList()->ID();
 
         $type = $this->visit($ctx->type());
-        
+
 
         $values = [];
 
@@ -1161,13 +1161,53 @@ class IRVisitor extends GolampiBaseVisitor
 
     public function visitPrimaryExpr($ctx)
     {
-        if ($ctx->expr()) {
-            return $this->visit($ctx->expr());
+        // =====================================
+        // FUNCTION CALL
+        // =====================================
+
+        if ($ctx->functionCall()) {
+
+            return $this->visit(
+                $ctx->functionCall()
+            );
         }
 
-        if ($ctx->literal()) {
-            return $this->visit($ctx->literal());
+        // =====================================
+        // ARRAY ACCESS
+        // =====================================
+
+        if ($ctx->arrayAccess()) {
+
+            return $this->visit(
+                $ctx->arrayAccess()
+            );
         }
+
+        // =====================================
+        // PARENTHESIZED EXPR
+        // =====================================
+
+        if ($ctx->expr()) {
+
+            return $this->visit(
+                $ctx->expr()
+            );
+        }
+
+        // =====================================
+        // LITERAL
+        // =====================================
+
+        if ($ctx->literal()) {
+
+            return $this->visit(
+                $ctx->literal()
+            );
+        }
+
+        // =====================================
+        // VARIABLE
+        // =====================================
 
         if ($ctx->ID()) {
 
@@ -1188,11 +1228,20 @@ class IRVisitor extends GolampiBaseVisitor
             }
 
             return [
+
                 "type" => "VAR",
+
                 "name" => $name,
-                "offset" => $symbol["offset"] ?? 0
+
+                "offset" => $symbol["offset"] ?? 0,
+
+                "varType" => $symbol["type"] ?? "int32"
             ];
         }
+
+        // =====================================
+        // FALLBACK
+        // =====================================
 
         return $this->visitChildren($ctx);
     }

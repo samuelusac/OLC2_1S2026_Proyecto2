@@ -39,11 +39,45 @@ class ARM64Generator
 
         $this->emit(".section .rodata");
 
-        // printf int format
+        // =====================================
+        // PRINT FORMATS
+        // =====================================
+
+        $this->emit("empty_str:");
+        $this->emit('    .asciz ""');
+        $this->emit("");
 
         $this->emit("fmt_int:");
+        $this->emit('    .asciz "%d "');
+        $this->emit("");
 
-        $this->emit('    .asciz "%d\n"');
+        $this->emit("fmt_string:");
+        $this->emit('    .asciz "%s "');
+        $this->emit("");
+
+        $this->emit("fmt_bool:");
+        $this->emit('    .asciz "%s "');
+        $this->emit("");
+
+        $this->emit("fmt_char:");
+        $this->emit('    .asciz "%c "');
+        $this->emit("");
+
+        $this->emit("newline:");
+        $this->emit('    .asciz "\\n"');
+        $this->emit("");
+
+        // =====================================
+        // BOOL STRINGS
+        // =====================================
+
+        $this->emit("true_str:");
+        $this->emit('    .asciz "true"');
+        $this->emit("");
+
+        $this->emit("false_str:");
+        $this->emit('    .asciz "false"');
+        $this->emit("");
 
         $this->emit("");
 
@@ -250,6 +284,50 @@ class ARM64Generator
     private function generateExpr(array $expr): void
     {
         // =====================================
+        // EMPTY STRING
+        // =====================================
+
+        if ($expr['type'] === 'EMPTY_STRING') {
+
+            $this->emit(
+                "    ldr x0, =empty_str"
+            );
+
+            return;
+        }
+        // =====================================
+        // RUNE
+        // =====================================
+
+        if (
+            is_string($expr['value'])
+            && preg_match(
+                "/^'.'$/",
+                $expr['value']
+            )
+        ) {
+
+            // extract char
+            $char = substr(
+                $expr['value'],
+                1,
+                1
+            );
+
+            $ascii = ord($char);
+
+            $this->comment(
+                "rune '$char'"
+            );
+
+            $this->emit(
+                "    mov w0, #$ascii"
+            );
+
+            return;
+        }
+
+        // =====================================
         // CONST
         // =====================================
 
@@ -293,6 +371,29 @@ class ARM64Generator
 
                 $this->emit(
                     "    mov w0, #0"
+                );
+
+                return;
+            }
+
+            // =====================================
+// FLOAT CONST (fake support)
+// =====================================
+
+            if (
+                is_string($expr['value'])
+                && preg_match(
+                    '/^[0-9]+\.[0-9]+$/',
+                    $expr['value']
+                )
+            ) {
+
+                $label = $this->newString(
+                    $expr['value']
+                );
+
+                $this->emit(
+                    "    ldr x0, =$label"
                 );
 
                 return;
@@ -346,6 +447,67 @@ class ARM64Generator
             throw new Exception(
                 "Unsupported CONST: $value"
             );
+        }
+
+        // =====================================
+// ARRAY ACCESS
+// =====================================
+
+        if ($expr['type'] === 'ARRAY_ACCESS') {
+
+            $arrayName = $expr['array'];
+
+            $baseOffset = abs(
+                $expr['offset']
+            );
+
+            $this->comment(
+                "ARRAY ACCESS $arrayName"
+            );
+
+            // =====================================
+            // INDEX
+            // =====================================
+
+            $indexExpr = $expr['indices'][0];
+
+            $this->generateExpr(
+                $indexExpr
+            );
+
+            // w0 = index
+
+            // multiply by sizeof(int32)
+            $this->emit(
+                "    lsl w0, w0, #2"
+            );
+
+            // preserve scaled index
+            $this->emit(
+                "    mov x1, x0"
+            );
+
+            // =====================================
+            // BASE ADDRESS
+            // =====================================
+
+            $this->emit(
+                "    sub x2, x29, #$baseOffset"
+            );
+
+            $this->emit(
+                "    add x2, x2, x1"
+            );
+
+            // =====================================
+            // LOAD
+            // =====================================
+
+            $this->emit(
+                "    ldr w0, [x2]"
+            );
+
+            return;
         }
 
         // =====================================
@@ -878,10 +1040,11 @@ class ARM64Generator
                     break;
 
                 case 'string':
+
                     $value = [
-                        'type' => 'CONST',
-                        'value' => 0
+                        'type' => 'EMPTY_STRING'
                     ];
+
                     break;
 
                 default:
@@ -904,9 +1067,38 @@ class ARM64Generator
         // STORE RESULT
         // =====================================
 
-        $this->emit(
-            "    str w0, [x29, #-$offset]"
-        );
+        $type = $instruction['varType'] ?? null;
+
+        // primitive object
+        if (
+            is_array($type)
+            && ($type['kind'] ?? '') === 'primitive'
+        ) {
+
+            $type = $type['name'];
+        }
+
+        // =====================================
+        // STRING POINTER
+        // =====================================
+
+        if (
+            $type === 'string'
+            || $type === 'float32'
+        ) {
+
+            $this->emit(
+                "    str x0, [x29, #-$offset]"
+            );
+
+        } else {
+
+            $this->emit(
+                "    str w0, [x29, #-$offset]"
+            );
+        }
+
+        $this->emit("");
 
         $this->emit("");
     }
@@ -916,14 +1108,42 @@ class ARM64Generator
         $this->comment("fmt.Println");
 
         foreach ($instruction['args'] as $arg) {
-
             // =====================================
-            // STRING
+            // RUNE CONSTANT
             // =====================================
 
             if (
                 $arg['type'] === 'CONST'
-                && !is_numeric($arg['value'])
+                && is_string($arg['value'])
+                && strlen($arg['value']) === 1
+            ) {
+
+                $ascii = ord($arg['value']);
+
+                $this->emit(
+                    "    mov w1, #$ascii"
+                );
+
+                $this->emit(
+                    "    ldr x0, =fmt_char"
+                );
+
+                $this->emit(
+                    "    bl printf"
+                );
+
+                continue;
+            }
+
+            // =====================================
+            // STRING CONSTANT
+            // =====================================
+
+            if (
+                $arg['type'] === 'CONST'
+                && is_string($arg['value'])
+                && !$this->isBoolLiteral($arg['value'])
+                && strlen($arg['value']) > 1
             ) {
 
                 $label = $this->newString(
@@ -931,20 +1151,191 @@ class ARM64Generator
                 );
 
                 $this->emit(
-                    "    ldr x0, =$label"
+                    "    ldr x1, =$label"
                 );
 
                 $this->emit(
-                    "    bl puts"
+                    "    ldr x0, =fmt_string"
                 );
 
-                $this->emit("");
+                $this->emit(
+                    "    bl printf"
+                );
 
                 continue;
             }
 
             // =====================================
-            // INT / VAR / EXPR
+            // BOOL CONSTANT
+            // =====================================
+
+            if (
+                $arg['type'] === 'CONST'
+                && $this->isBoolLiteral(
+                    $arg['value']
+                )
+            ) {
+
+                $boolLabel =
+                    $arg['value'] === 'true'
+                    ? 'true_str'
+                    : 'false_str';
+
+                $this->emit(
+                    "    ldr x1, =$boolLabel"
+                );
+
+                $this->emit(
+                    "    ldr x0, =fmt_bool"
+                );
+
+                $this->emit(
+                    "    bl printf"
+                );
+
+                continue;
+            }
+
+            // =====================================
+            // STRING VARIABLE
+            // =====================================
+
+            if (
+                $arg['type'] === 'VAR'
+                && is_array($arg['varType'] ?? null)
+                && ($arg['varType']['name'] ?? '') === 'string'
+            ) {
+
+                // load string pointer
+
+                $offset = abs(
+                    $arg['offset']
+                );
+
+                $this->emit(
+                    "    ldr x1, [x29, #-$offset]"
+                );
+
+                $this->emit(
+                    "    ldr x0, =fmt_string"
+                );
+
+                $this->emit(
+                    "    bl printf"
+                );
+
+                continue;
+            }
+
+            // =====================================
+            // BOOL VARIABLE
+            // =====================================
+
+            if (
+                $arg['type'] === 'VAR'
+                && is_array($arg['varType'] ?? null)
+                && ($arg['varType']['name'] ?? '') === 'bool'
+            ) {
+
+                $offset = abs(
+                    $arg['offset']
+                );
+
+                // load bool value
+                $this->emit(
+                    "    ldr w1, [x29, #-$offset]"
+                );
+
+                // compare with 0
+                $this->emit(
+                    "    cmp w1, #0"
+                );
+
+                // true
+                $this->emit(
+                    "    ldr x1, =true_str"
+                );
+
+                // false if equal
+                $this->emit(
+                    "    ldr x2, =false_str"
+                );
+
+                $this->emit(
+                    "    csel x1, x2, x1, eq"
+                );
+
+                $this->emit(
+                    "    ldr x0, =fmt_bool"
+                );
+
+                $this->emit(
+                    "    bl printf"
+                );
+
+                continue;
+            }
+
+            // =====================================
+            // RUNE VARIABLE
+            // =====================================
+
+            if (
+                $arg['type'] === 'VAR'
+                && is_array($arg['varType'] ?? null)
+                && ($arg['varType']['name'] ?? '') === 'rune'
+            ) {
+
+                $offset = abs(
+                    $arg['offset']
+                );
+
+                $this->emit(
+                    "    ldr w1, [x29, #-$offset]"
+                );
+
+                $this->emit(
+                    "    ldr x0, =fmt_char"
+                );
+
+                $this->emit(
+                    "    bl printf"
+                );
+
+                continue;
+            }
+
+            // =====================================
+// FLOAT VARIABLE (fake support)
+// =====================================
+
+            if (
+                $arg['type'] === 'VAR'
+                && is_array($arg['varType'] ?? null)
+                && ($arg['varType']['name'] ?? '') === 'float32'
+            ) {
+
+                $offset = abs(
+                    $arg['offset']
+                );
+
+                $this->emit(
+                    "    ldr x1, [x29, #-$offset]"
+                );
+
+                $this->emit(
+                    "    ldr x0, =fmt_string"
+                );
+
+                $this->emit(
+                    "    bl printf"
+                );
+
+                continue;
+            }
+
+            // =====================================
+            // NORMAL EXPR
             // =====================================
 
             $this->generateExpr($arg);
@@ -960,9 +1351,27 @@ class ARM64Generator
             $this->emit(
                 "    bl printf"
             );
-
-            $this->emit("");
         }
+
+        // =====================================
+        // NEWLINE
+        // =====================================
+
+        $this->emit(
+            "    ldr x0, =newline"
+        );
+
+        $this->emit(
+            "    bl printf"
+        );
+
+        $this->emit("");
+    }
+
+    private function isBoolLiteral($value): bool
+    {
+        return $value === 'true'
+            || $value === 'false';
     }
 
     private function generateLabel(array $instruction): void
