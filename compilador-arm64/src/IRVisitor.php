@@ -744,6 +744,7 @@ class IRVisitor extends GolampiBaseVisitor
         $values = [];
 
         foreach ($ctx->exprList()->expr() as $exprCtx) {
+
             $values[] = $this->visit($exprCtx);
         }
 
@@ -755,32 +756,60 @@ class IRVisitor extends GolampiBaseVisitor
 
             $value = $values[$i] ?? null;
 
-            $offset = $this->currentFrame->allocate($name);
+            // =====================================
+            // INFER TYPE
+            // =====================================
+
+            $type = $this->inferTypeFromExpr(
+                $value
+            );
+
+            // =====================================
+            // ALLOCATE
+            // =====================================
+
+            $offset = $this->currentFrame->allocate(
+                $name,
+                $type
+            );
+
+            // =====================================
+            // SYMBOL TABLE
+            // =====================================
 
             try {
 
                 $this->symbolTable->declare($name, [
-                    "type" => "infer",
+
+                    "type" => $type,
+
                     "kind" => "local",
+
                     "offset" => $offset
                 ]);
 
             } catch (Exception $e) {
 
-                $this->semanticError($ctx, $e->getMessage());
+                $this->semanticError(
+                    $ctx,
+                    $e->getMessage()
+                );
             }
 
-            // $this->symbolTable->declare($name, [
-            //     "type" => "infer",
-            //     "kind" => "local",
-            //     "offset" => $offset
-            // ]);
+            // =====================================
+            // IR
+            // =====================================
 
             $instructions[] = [
+
                 "op" => "ASSIGN",
+
                 "name" => $name,
-                "varType" => "infer",
+
+                "varType" => $type,
+
                 "value" => $value,
+
                 "offset" => $offset
             ];
         }
@@ -788,40 +817,162 @@ class IRVisitor extends GolampiBaseVisitor
         return $instructions;
     }
 
+    private function inferTypeFromExpr($expr)
+    {
+        // =====================================
+        // CONST
+        // =====================================
+
+        if ($expr['type'] === 'CONST') {
+
+            $value = $expr['value'];
+
+            // bool
+
+            if (
+                $value === 'true'
+                || $value === 'false'
+            ) {
+
+                return [
+                    "kind" => "primitive",
+                    "name" => "bool"
+                ];
+            }
+
+            // rune
+
+            if (
+                is_string($value)
+                && preg_match("/^'.'$/", $value)
+            ) {
+
+                return [
+                    "kind" => "primitive",
+                    "name" => "rune"
+                ];
+            }
+
+            // string
+
+            if (
+                is_string($value)
+                && str_starts_with($value, '"')
+                && str_ends_with($value, '"')
+            ) {
+
+                return [
+                    "kind" => "primitive",
+                    "name" => "string"
+                ];
+            }
+
+            // float
+
+            if (
+                is_string($value)
+                && preg_match(
+                    '/^[0-9]+\.[0-9]+$/',
+                    $value
+                )
+            ) {
+
+                return [
+                    "kind" => "primitive",
+                    "name" => "float32"
+                ];
+            }
+
+            // int
+
+            return [
+                "kind" => "primitive",
+                "name" => "int32"
+            ];
+        }
+
+        // =====================================
+        // VAR
+        // =====================================
+
+        if ($expr['type'] === 'VAR') {
+
+            return $expr['varType']
+                ?? [
+                    "kind" => "primitive",
+                    "name" => "int32"
+                ];
+        }
+
+        // =====================================
+        // FALLBACK
+        // =====================================
+
+        return [
+            "kind" => "primitive",
+            "name" => "int32"
+        ];
+    }
+
     public function visitConstDecl($ctx)
     {
         $name = $ctx->ID()->getText();
 
-        $type = $this->visit($ctx->type());
+        $type = $this->visit(
+            $ctx->type()
+        );
 
-        $value = $this->visit($ctx->expr());
+        $value = $this->visit(
+            $ctx->expr()
+        );
 
-        $offset = $this->currentFrame->allocate($name);
+        // =====================================
+        // ALLOCATE
+        // =====================================
 
-        // $this->symbolTable->declare($name, [
-        //     "type" => $type,
-        //     "kind" => "const",
-        //     "offset" => $offset
-        // ]);
+        $offset = $this->currentFrame->allocate(
+            $name,
+            $type
+        );
+
+        // =====================================
+        // SYMBOL TABLE
+        // =====================================
 
         try {
 
             $this->symbolTable->declare($name, [
+
                 "type" => $type,
+
                 "kind" => "const",
+
                 "offset" => $offset
             ]);
 
         } catch (Exception $e) {
 
-            $this->semanticError($ctx, $e->getMessage());
+            $this->semanticError(
+                $ctx,
+                $e->getMessage()
+            );
         }
 
+        // =====================================
+        // LOWER AS NORMAL ASSIGN
+        // =====================================
+
         return [
-            "op" => "CONST_DECL",
+
+            "op" => "ASSIGN",
+
             "name" => $name,
-            "constType" => $type,
-            "value" => $value
+
+            "varType" => $type,
+
+            "value" => $value,
+
+            "offset" => $offset
         ];
     }
 

@@ -7,8 +7,17 @@ class ARM64Generator
     private array $strings = [];
 
     private int $stringCounter = 0;
-    private int $tempOffset = 200;
+    private int $tempOffset = 2048;
     private int $labelCounter = 0;
+
+    // private function allocateTemp(): int
+    // {
+    //     $temp = $this->tempOffset;
+
+    //     $this->tempOffset += 8;
+
+    //     return $temp;
+    // }
 
     public function generate(array $program): string
     {
@@ -109,7 +118,7 @@ class ARM64Generator
     private function generateFunction(
         array $function
     ): void {
-
+        $this->tempOffset = 200;
         $name = $function['name'];
 
         // =====================================
@@ -143,7 +152,7 @@ class ARM64Generator
         );
 
         $this->emit(
-            "    sub sp, sp, #256"
+            "    sub sp, sp, #16384"
         );
 
         $this->emit("");
@@ -210,7 +219,7 @@ class ARM64Generator
         );
 
         $this->emit(
-            "    add sp, sp, #256"
+            "    add sp, sp, #16384"
         );
 
         $this->comment("epilogue");
@@ -520,8 +529,9 @@ class ARM64Generator
 
             $this->comment("load " . $expr['name']);
 
-            $this->emit(
-                "    ldr w0, [x29, #-$offset]"
+            $this->emitLoadW(
+                "w0",
+                $offset
             );
 
             return;
@@ -555,8 +565,9 @@ class ARM64Generator
                 // guardar temporalmente
                 $offset = 200 + ($index * 8);
 
-                $this->emit(
-                    "    str w0, [x29, #-$offset]"
+                $this->emitStoreW(
+                    "w0",
+                    $offset
                 );
             }
 
@@ -572,8 +583,9 @@ class ARM64Generator
                     "load argument $index into w$index"
                 );
 
-                $this->emit(
-                    "    ldr w$index, [x29, #-$offset]"
+                $this->emitLoadW(
+                    "w$index",
+                    $offset
                 );
             }
 
@@ -827,8 +839,9 @@ class ARM64Generator
                 "store left operand temp"
             );
 
-            $this->emit(
-                "    str w0, [x29, #-$temp]"
+            $this->emitStoreW(
+                "w0",
+                $temp
             );
 
             // =========================
@@ -847,8 +860,9 @@ class ARM64Generator
                 "load left operand temp"
             );
 
-            $this->emit(
-                "    ldr w1, [x29, #-$temp]"
+            $this->emitLoadW(
+                "w1",
+                $temp
             );
 
             // =========================
@@ -1047,6 +1061,15 @@ class ARM64Generator
 
                     break;
 
+                case 'float32':
+
+                    $value = [
+                        'type' => 'CONST',
+                        'value' => "0.0"
+                    ];
+
+                    break;
+
                 default:
                     $value = [
                         'type' => 'CONST',
@@ -1087,14 +1110,16 @@ class ARM64Generator
             || $type === 'float32'
         ) {
 
-            $this->emit(
-                "    str x0, [x29, #-$offset]"
+            $this->emitStoreX(
+                "x0",
+                $offset
             );
 
         } else {
 
-            $this->emit(
-                "    str w0, [x29, #-$offset]"
+            $this->emitStoreW(
+                "w0",
+                $offset
             );
         }
 
@@ -1212,8 +1237,9 @@ class ARM64Generator
                     $arg['offset']
                 );
 
-                $this->emit(
-                    "    ldr x1, [x29, #-$offset]"
+                $this->emitLoadX(
+                    "x1",
+                    $offset
                 );
 
                 $this->emit(
@@ -1242,8 +1268,9 @@ class ARM64Generator
                 );
 
                 // load bool value
-                $this->emit(
-                    "    ldr w1, [x29, #-$offset]"
+                $this->emitLoadW(
+                    "w1",
+                    $offset
                 );
 
                 // compare with 0
@@ -1319,8 +1346,9 @@ class ARM64Generator
                     $arg['offset']
                 );
 
-                $this->emit(
-                    "    ldr x1, [x29, #-$offset]"
+                $this->emitLoadX(
+                    "x1",
+                    $offset
                 );
 
                 $this->emit(
@@ -1524,8 +1552,9 @@ class ARM64Generator
 
             $temp = $this->allocTemp();
 
-            $this->emit(
-                "    str w0, [x29, #-$temp]"
+            $this->emitStoreW(
+                "w0",
+                $temp
             );
 
             // evaluate right
@@ -1533,8 +1562,9 @@ class ARM64Generator
                 $condition['right']
             );
 
-            $this->emit(
-                "    ldr w1, [x29, #-$temp]"
+            $this->emitLoadW(
+                "w1",
+                $temp
             );
 
             $this->emit(
@@ -1592,6 +1622,122 @@ class ARM64Generator
 
         $this->emit(
             "    b.ne $label"
+        );
+    }
+
+    private function emitLoadW(
+        string $target,
+        int $offset
+    ): void {
+
+        $abs = abs($offset);
+
+        if ($abs <= 255) {
+
+            $this->emit(
+                "    ldr $target, [x29, #-$abs]"
+            );
+
+            return;
+        }
+
+        $this->emit(
+            "    mov x9, #$abs"
+        );
+
+        $this->emit(
+            "    sub x9, x29, x9"
+        );
+
+        $this->emit(
+            "    ldr $target, [x9]"
+        );
+    }
+
+    private function emitStoreW(
+        string $source,
+        int $offset
+    ): void {
+
+        $abs = abs($offset);
+
+        if ($abs <= 255) {
+
+            $this->emit(
+                "    str $source, [x29, #-$abs]"
+            );
+
+            return;
+        }
+
+        $this->emit(
+            "    mov x9, #$abs"
+        );
+
+        $this->emit(
+            "    sub x9, x29, x9"
+        );
+
+        $this->emit(
+            "    str $source, [x9]"
+        );
+    }
+
+    private function emitLoadX(
+        string $target,
+        int $offset
+    ): void {
+
+        $abs = abs($offset);
+
+        if ($abs <= 255) {
+
+            $this->emit(
+                "    ldr $target, [x29, #-$abs]"
+            );
+
+            return;
+        }
+
+        $this->emit(
+            "    mov x9, #$abs"
+        );
+
+        $this->emit(
+            "    sub x9, x29, x9"
+        );
+
+        $this->emit(
+            "    ldr $target, [x9]"
+        );
+    }
+
+    private function emitStoreX(
+        string $source,
+        int $offset
+    ): void {
+
+        $abs = abs($offset);
+
+        if ($abs <= 255) {
+
+            $this->emit(
+                "    str $source, [x29, #-$abs]"
+            );
+
+            return;
+        }
+
+        $this->emit(
+            "    mov x9, #$abs"
+        );
+
+        $this->emit(
+            "    sub x9, x29, x9"
+        );
+
+        $this->emit(
+            "    str $source, [x9]"
         );
     }
 
