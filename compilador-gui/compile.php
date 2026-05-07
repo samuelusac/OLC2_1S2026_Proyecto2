@@ -115,20 +115,18 @@ try {
                 // =====================================
                 // GENERAR ASM
                 // =====================================
+                
 
-                // $generator = new ARM64Generator();
+                $generator = new ARM64Generator();
 
-                // $asm = $generator->generate($ir);
+
+                $asm = $generator->generate($ir);
 
 
                 // =====================================
                 // GUARDAR ASM
                 // =====================================
-
-                file_put_contents(
-                    __DIR__ . '/../compilador-arm64/output/main.asm',
-                    $asm
-                );
+                $_SESSION['asm'] = $asm;
 
 
                 // =====================================
@@ -139,7 +137,18 @@ try {
             }
 
         } catch (Throwable $e) {
-            $_SESSION['output'] = "❌ Error:\n" . $e->getMessage();
+
+            // $_SESSION['output'] = "❌ Error:\n" . $e->getMessage();
+
+            echo "<pre>";
+
+            echo "ERROR REAL:\n\n";
+
+            echo $e;
+
+            echo "</pre>";
+
+            exit;
         }
     }
 

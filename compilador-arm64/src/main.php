@@ -4,147 +4,253 @@ require_once 'ARM64Generator.php';
 
 $ir = [
 
-    // i = 1
+    "functions" => [
 
-    [
-        "op" => "ASSIGN",
-        "name" => "i",
-        "offset" => -16,
-        "value" => [
-            "type" => "CONST",
-            "value" => 1
-        ]
-    ],
+        "suma" => [
 
-    // condition
+            "type" => "FUNCTION",
 
-    [
-        "op" => "LABEL",
-        "name" => "L0"
-    ],
+            "name" => "suma",
 
-    // if i <= 6 goto body
+            "params" => [
 
-    [
-        "op" => "IF_GOTO",
-        "condition" => [
-            "type" => "BINARY",
-            "op" => "<=",
-            "left" => [
-                "type" => "VAR",
-                "name" => "i",
-                "offset" => -16
-            ],
-            "right" => [
-                "type" => "CONST",
-                "value" => 6
-            ]
-        ],
-        "label" => "L1"
-    ],
-
-    // exit
-
-    [
-        "op" => "GOTO",
-        "label" => "L_EXIT"
-    ],
-
-    // body
-
-    [
-        "op" => "LABEL",
-        "name" => "L1"
-    ],
-
-    // if i % 2 == 0 goto continue
-
-    [
-        "op" => "IF_GOTO",
-        "condition" => [
-
-            "type" => "BINARY",
-            "op" => "==",
-
-            "left" => [
-
-                "type" => "BINARY",
-                "op" => "%",
-
-                "left" => [
-                    "type" => "VAR",
-                    "name" => "i",
-                    "offset" => -16
+                [
+                    "name" => "a"
                 ],
 
-                "right" => [
-                    "type" => "CONST",
-                    "value" => 2
+                [
+                    "name" => "b"
                 ]
             ],
 
-            "right" => [
-                "type" => "CONST",
-                "value" => 0
+            "body" => [
+
+                [
+                    "op" => "RETURN",
+
+                    "value" => [
+
+                        "type" => "BINARY",
+
+                        "op" => "+",
+
+                        "left" => [
+                            "type" => "VAR",
+                            "name" => "a",
+                            "offset" => -8
+                        ],
+
+                        "right" => [
+                            "type" => "VAR",
+                            "name" => "b",
+                            "offset" => -16
+                        ]
+                    ]
+                ]
             ]
         ],
-        "label" => "L_CONTINUE"
-    ],
 
-    // print odd numbers
+        "factorial" => [
 
-    [
-        "op" => "PRINT",
-        "values" => [
-            [
-                "type" => "VAR",
-                "name" => "i",
-                "offset" => -16
-            ]
-        ]
-    ],
+            "type" => "FUNCTION",
 
-    // continue target
+            "name" => "factorial",
 
-    [
-        "op" => "LABEL",
-        "name" => "L_CONTINUE"
-    ],
+            "params" => [
 
-    // increment
-
-    [
-        "op" => "ASSIGN",
-        "name" => "i",
-        "offset" => -16,
-        "value" => [
-            "type" => "BINARY",
-            "op" => "+",
-            "left" => [
-                "type" => "VAR",
-                "name" => "i",
-                "offset" => -16
+                [
+                    "name" => "n"
+                ]
             ],
-            "right" => [
-                "type" => "CONST",
-                "value" => 1
+
+            "body" => [
+
+                [
+                    "op" => "IF_GOTO",
+
+                    "condition" => [
+
+                        "type" => "BINARY",
+
+                        "op" => "<=",
+
+                        "left" => [
+                            "type" => "VAR",
+                            "name" => "n",
+                            "offset" => -8
+                        ],
+
+                        "right" => [
+                            "type" => "CONST",
+                            "value" => 1
+                        ]
+                    ],
+
+                    "label" => "L0"
+                ],
+
+                [
+                    "op" => "GOTO",
+                    "label" => "L1"
+                ],
+
+                [
+                    "op" => "LABEL",
+                    "name" => "L0"
+                ],
+
+                [
+                    "op" => "RETURN",
+
+                    "value" => [
+                        "type" => "CONST",
+                        "value" => 1
+                    ]
+                ],
+
+                [
+                    "op" => "LABEL",
+                    "name" => "L1"
+                ],
+
+                [
+                    "op" => "RETURN",
+
+                    "value" => [
+
+                        "type" => "BINARY",
+
+                        "op" => "*",
+
+                        "left" => [
+                            "type" => "VAR",
+                            "name" => "n",
+                            "offset" => -8
+                        ],
+
+                        "right" => [
+
+                            "type" => "CALL",
+
+                            "name" => "factorial",
+
+                            "args" => [
+
+                                [
+
+                                    "type" => "BINARY",
+
+                                    "op" => "-",
+
+                                    "left" => [
+                                        "type" => "VAR",
+                                        "name" => "n",
+                                        "offset" => -8
+                                    ],
+
+                                    "right" => [
+                                        "type" => "CONST",
+                                        "value" => 1
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ],
+
+        "main" => [
+
+            "type" => "FUNCTION",
+
+            "name" => "main",
+
+            "params" => [],
+
+            "body" => [
+
+                [
+                    "op" => "ASSIGN",
+
+                    "name" => "x",
+
+                    "offset" => -8,
+
+                    "value" => [
+
+                        "type" => "CALL",
+
+                        "name" => "suma",
+
+                        "args" => [
+
+                            [
+                                "type" => "CONST",
+                                "value" => 10
+                            ],
+
+                            [
+                                "type" => "CONST",
+                                "value" => 20
+                            ]
+                        ]
+                    ]
+                ],
+
+                [
+                    "op" => "ASSIGN",
+
+                    "name" => "y",
+
+                    "offset" => -16,
+
+                    "value" => [
+
+                        "type" => "CALL",
+
+                        "name" => "factorial",
+
+                        "args" => [
+
+                            [
+                                "type" => "CONST",
+                                "value" => 5
+                            ]
+                        ]
+                    ]
+                ],
+
+                [
+                    "op" => "PRINT",
+
+                    "values" => [
+
+                        [
+                            "type" => "VAR",
+                            "name" => "x",
+                            "offset" => -8
+                        ]
+                    ]
+                ],
+
+                [
+                    "op" => "PRINT",
+
+                    "values" => [
+
+                        [
+                            "type" => "VAR",
+                            "name" => "y",
+                            "offset" => -16
+                        ]
+                    ]
+                ]
             ]
         ]
     ],
 
-    // back edge
-
-    [
-        "op" => "GOTO",
-        "label" => "L0"
-    ],
-
-    // exit label
-
-    [
-        "op" => "LABEL",
-        "name" => "L_EXIT"
-    ]
+    "entry" => "main"
 ];
 
 $generator = new ARM64Generator();

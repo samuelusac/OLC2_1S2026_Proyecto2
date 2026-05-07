@@ -7,8 +7,9 @@ class ARM64Generator
     private array $strings = [];
 
     private int $stringCounter = 0;
+    private int $tempOffset = 200;
 
-    public function generate(array $ir): string
+    public function generate(array $program): string
     {
         $this->lines = [];
         $this->strings = [];
@@ -18,62 +19,18 @@ class ARM64Generator
         // =====================================
 
         $this->emit(".section .text");
-        $this->emit(".global main");
         $this->emit("");
 
         // =====================================
-        // MAIN
+        // FUNCTIONS
         // =====================================
 
-        $this->emit("main:");
+        foreach ($program['functions'] as $function) {
 
-        // =====================================
-        // PROLOGUE
-        // =====================================
-
-        $this->comment("prologue");
-
-        $this->emit("    stp x29, x30, [sp, -16]!");
-        $this->emit("    mov x29, sp");
-
-        $this->comment("reservar stack frame");
-
-        $this->emit("    sub sp, sp, #256");
-
-        $this->emit("");
-
-        // =====================================
-        // BODY
-        // =====================================
-
-        foreach ($ir as $instruction) {
-            $this->generateInstruction($instruction);
+            $this->generateFunction(
+                $function
+            );
         }
-
-        // =====================================
-        // RETURN 0
-        // =====================================
-
-        $this->comment("return 0");
-
-        $this->emit("    mov w0, #0");
-
-        $this->emit("");
-
-        // =====================================
-        // EPILOGUE
-        // =====================================
-
-        $this->comment("liberar stack frame");
-
-        $this->emit("    add sp, sp, #256");
-
-        $this->comment("epilogue");
-
-        $this->emit("    ldp x29, x30, [sp], 16");
-        $this->emit("    ret");
-
-        $this->emit("");
 
         // =====================================
         // RODATA
@@ -82,21 +39,156 @@ class ARM64Generator
         $this->emit(".section .rodata");
 
         // printf int format
+
         $this->emit("fmt_int:");
+
         $this->emit('    .asciz "%d\n"');
 
         $this->emit("");
 
         // user strings
+
         foreach ($this->strings as $label => $value) {
 
             $escaped = addslashes($value);
 
             $this->emit("$label:");
-            $this->emit("    .asciz \"$escaped\"");
+
+            $this->emit(
+                "    .asciz \"$escaped\""
+            );
         }
 
         return implode("\n", $this->lines) . "\n";
+    }
+
+    private function generateFunction(
+        array $function
+    ): void {
+
+        $name = $function['name'];
+
+        // =====================================
+        // SYMBOL
+        // =====================================
+
+        $this->emit(".global $name");
+
+        // =====================================
+        // LABEL
+        // =====================================
+
+        $this->emit("$name:");
+
+        // =====================================
+        // PROLOGUE
+        // =====================================
+
+        $this->comment("prologue");
+
+        $this->emit(
+            "    stp x29, x30, [sp, -16]!"
+        );
+
+        $this->emit(
+            "    mov x29, sp"
+        );
+
+        $this->comment(
+            "reservar stack frame"
+        );
+
+        $this->emit(
+            "    sub sp, sp, #256"
+        );
+
+        $this->emit("");
+
+        // =====================================
+        // STORE PARAMETERS
+        // =====================================
+
+        foreach ($function['params'] as $index => $param) {
+
+            $offset = ($index + 1) * 8;
+
+            $register = "w$index";
+
+            $this->comment(
+                "store parameter " . $param['name']
+            );
+
+            $this->emit(
+                "    str $register, [x29, #-$offset]"
+            );
+        }
+
+        if (!empty($function['params'])) {
+
+            $this->emit("");
+        }
+
+        // =====================================
+        // BODY
+        // =====================================
+        // reset temp allocator
+
+        $this->tempOffset = 200;
+
+        foreach ($function['body'] as $instruction) {
+
+            $this->generateInstruction(
+                $instruction
+            );
+        }
+
+        // =====================================
+        // DEFAULT RETURN 0
+        // =====================================
+
+        $this->comment("default return 0");
+
+        $this->emit(
+            "    mov w0, #0"
+        );
+
+        // =====================================
+        // EPILOGUE
+        // =====================================
+
+        $this->generateEpilogue();
+    }
+
+    private function generateEpilogue(): void
+    {
+        $this->comment(
+            "liberar stack frame"
+        );
+
+        $this->emit(
+            "    add sp, sp, #256"
+        );
+
+        $this->comment("epilogue");
+
+        $this->emit(
+            "    ldp x29, x30, [sp], 16"
+        );
+
+        $this->emit(
+            "    ret"
+        );
+
+        $this->emit("");
+    }
+
+    private function allocTemp(): int
+    {
+        $offset = $this->tempOffset;
+
+        $this->tempOffset += 8;
+
+        return $offset;
     }
 
     private function generateInstruction(array $instruction): void
@@ -142,15 +234,103 @@ class ARM64Generator
         // CONST
         // =====================================
 
+        // =====================================
+// CONST
+// =====================================
+
         if ($expr['type'] === 'CONST') {
 
             $value = $expr['value'];
 
-            $this->comment("const $value");
+            // =====================================
+            // BOOLEANS
+            // =====================================
 
-            $this->emit("    mov w0, #$value");
+            if ($value === 'true') {
 
-            return;
+                $this->comment("const true");
+
+                $this->emit(
+                    "    mov w0, #1"
+                );
+
+                return;
+            }
+
+            if ($value === 'false') {
+
+                $this->comment("const false");
+
+                $this->emit(
+                    "    mov w0, #0"
+                );
+
+                return;
+            }
+
+            // =====================================
+            // NIL
+            // =====================================
+
+            if ($value === 'nil') {
+
+                $this->comment("const nil");
+
+                $this->emit(
+                    "    mov w0, #0"
+                );
+
+                return;
+            }
+
+            // =====================================
+            // INTEGER
+            // =====================================
+
+            if (is_numeric($value)) {
+
+                $this->comment("const $value");
+
+                $this->emit(
+                    "    mov w0, #$value"
+                );
+
+                return;
+            }
+
+            // =====================================
+            // STRING LITERAL
+            // =====================================
+
+            if (
+                str_starts_with($value, '"')
+                && str_ends_with($value, '"')
+            ) {
+
+                $stringValue = substr(
+                    $value,
+                    1,
+                    -1
+                );
+
+                $label = $this->newString(
+                    $stringValue
+                );
+
+                $this->comment(
+                    "const string"
+                );
+
+                $this->emit(
+                    "    ldr x0, =$label"
+                );
+
+                return;
+            }
+
+            throw new Exception(
+                "Unsupported CONST: $value"
+            );
         }
 
         // =====================================
@@ -165,6 +345,75 @@ class ARM64Generator
 
             $this->emit(
                 "    ldr w0, [x29, #-$offset]"
+            );
+
+            return;
+        }
+
+        // =====================================
+        // CALL
+        // =====================================
+
+        if ($expr['type'] === 'CALL') {
+
+            $functionName = $expr['name'];
+
+            $this->comment(
+                "BEGIN CALL $functionName"
+            );
+
+            // =====================================
+            // EVALUATE ARGUMENTS
+            // =====================================
+
+            foreach ($expr['args'] as $index => $arg) {
+
+                $this->comment(
+                    "evaluate argument $index"
+                );
+
+                // resultado queda en w0
+                $this->generateExpr($arg);
+
+                // guardar temporalmente
+                $offset = 200 + ($index * 8);
+
+                $this->emit(
+                    "    str w0, [x29, #-$offset]"
+                );
+            }
+
+            // =====================================
+            // LOAD ARGUMENTS INTO ABI REGISTERS
+            // =====================================
+
+            foreach ($expr['args'] as $index => $arg) {
+
+                $offset = 200 + ($index * 8);
+
+                $this->comment(
+                    "load argument $index into w$index"
+                );
+
+                $this->emit(
+                    "    ldr w$index, [x29, #-$offset]"
+                );
+            }
+
+            // =====================================
+            // CALL
+            // =====================================
+
+            $this->comment(
+                "call $functionName"
+            );
+
+            $this->emit(
+                "    bl $functionName"
+            );
+
+            $this->comment(
+                "END CALL $functionName"
             );
 
             return;
@@ -188,11 +437,19 @@ class ARM64Generator
 
             $this->generateExpr($expr['left']);
 
-            $this->comment("push left operand");
+            // =====================================
+            // STORE TEMP
+            // =====================================
 
-            // guardar left temporal
-            $this->emit("    str w0, [sp, #-16]!");
+            $temp = $this->allocTemp();
 
+            $this->comment(
+                "store left operand temp"
+            );
+
+            $this->emit(
+                "    str w0, [x29, #-$temp]"
+            );
 
             // =========================
             // RIGHT OPERAND
@@ -202,13 +459,17 @@ class ARM64Generator
 
             $this->generateExpr($expr['right']);
 
-            // right -> w0
+            // =====================================
+            // LOAD TEMP
+            // =====================================
 
-            $this->comment("pop left operand into w1");
+            $this->comment(
+                "load left operand temp"
+            );
 
-            // recuperar left
-            $this->emit("    ldr w1, [sp], #16");
-
+            $this->emit(
+                "    ldr w1, [x29, #-$temp]"
+            );
 
             // =========================
             // OPERATIONS
@@ -264,13 +525,16 @@ class ARM64Generator
                         "    sdiv w2, w1, w0"
                     );
 
-                    $this->comment("w0 = w1 - (w2 * w0)");
+                    $this->comment(
+                        "w0 = w1 - (w2 * w0)"
+                    );
 
                     $this->emit(
                         "    msub w0, w2, w0, w1"
                     );
 
                     break;
+
                 case '==':
 
                     $this->comment("compare w1 == w0");
@@ -356,7 +620,9 @@ class ARM64Generator
                     break;
             }
 
-            $this->comment("END BINARY OPERATION ($op)");
+            $this->comment(
+                "END BINARY OPERATION ($op)"
+            );
 
             return;
         }
@@ -375,6 +641,39 @@ class ARM64Generator
         $this->comment(
             $instruction['name'] . " := expr"
         );
+
+        // =====================================
+        // DEFAULT INITIALIZATION
+        // =====================================
+
+        if ($value === null) {
+
+            $type = $instruction['varType']['name'] ?? 'int32';
+
+            switch ($type) {
+
+                case 'bool':
+                    $value = [
+                        'type' => 'CONST',
+                        'value' => 0
+                    ];
+                    break;
+
+                case 'string':
+                    $value = [
+                        'type' => 'CONST',
+                        'value' => 0
+                    ];
+                    break;
+
+                default:
+                    $value = [
+                        'type' => 'CONST',
+                        'value' => 0
+                    ];
+                    break;
+            }
+        }
 
         // =====================================
         // GENERATE EXPRESSION
@@ -396,55 +695,55 @@ class ARM64Generator
 
     private function generatePrint(array $instruction): void
     {
-        foreach ($instruction['values'] as $value) {
+        $this->comment("fmt.Println");
+
+        foreach ($instruction['args'] as $arg) {
 
             // =====================================
-            // PRINT STRING
+            // STRING
             // =====================================
 
-            if ($value['type'] === 'STRING') {
+            if (
+                $arg['type'] === 'CONST'
+                && !is_numeric($arg['value'])
+            ) {
 
-                $this->comment(
-                    'fmt.Println("' . $value['value'] . '")'
+                $label = $this->newString(
+                    $arg['value']
                 );
 
-                $label = $this->newString($value['value']);
-
-                $this->emit("    ldr x0, =$label");
-                $this->emit("    bl puts");
-
-                $this->emit("");
-
-                continue;
-            }
-
-            // =====================================
-            // PRINT VARIABLE
-            // =====================================
-
-            if ($value['type'] === 'VAR') {
-
-                $offset = abs($value['offset']);
-
-                $this->comment(
-                    "fmt.Println(" . $value['name'] . ")"
-                );
-
-                // format string
-                $this->emit("    ldr x0, =fmt_int");
-
-                // cargar variable
                 $this->emit(
-                    "    ldr w1, [x29, #-$offset]"
+                    "    ldr x0, =$label"
                 );
 
-                // llamar printf
-                $this->emit("    bl printf");
+                $this->emit(
+                    "    bl puts"
+                );
 
                 $this->emit("");
 
                 continue;
             }
+
+            // =====================================
+            // INT / VAR / EXPR
+            // =====================================
+
+            $this->generateExpr($arg);
+
+            $this->emit(
+                "    mov w1, w0"
+            );
+
+            $this->emit(
+                "    ldr x0, =fmt_int"
+            );
+
+            $this->emit(
+                "    bl printf"
+            );
+
+            $this->emit("");
         }
     }
 
@@ -484,25 +783,7 @@ class ARM64Generator
         $this->emit("");
     }
 
-    private function generateFunction(array $instruction): void
-    {
-        $name = $instruction['name'];
 
-        $this->emit("");
-
-        $this->emit(".global $name");
-
-        $this->emit("$name:");
-
-        // prologue
-
-        $this->emit("    stp x29, x30, [sp, -16]!");
-        $this->emit("    mov x29, sp");
-
-        $this->emit("    sub sp, sp, #256");
-
-        $this->emit("");
-    }
 
     private function generateReturn(array $instruction): void
     {
@@ -546,8 +827,10 @@ class ARM64Generator
         );
 
         // push left
+        $temp = $this->allocTemp();
+
         $this->emit(
-            "    str w0, [sp, #-16]!"
+            "    str w0, [x29, #-$temp]"
         );
 
         // evaluar right
@@ -557,7 +840,7 @@ class ARM64Generator
 
         // pop left -> w1
         $this->emit(
-            "    ldr w1, [sp], #16"
+            "    ldr w1, [x29, #-$temp]"
         );
 
         // comparar

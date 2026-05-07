@@ -186,9 +186,11 @@ $output = $_SESSION['output'] ?? '';
                     Tabla de Símbolos
                 </button>
 
-                <button class="report-btn" type="button">
-                    Descargar ASM
-                </button>
+                <a href="download_asm.php">
+                    <button class="report-btn" type="button">
+                        Descargar ASM
+                    </button>
+                </a>
 
             </div>
 
