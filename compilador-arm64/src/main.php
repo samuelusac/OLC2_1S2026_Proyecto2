@@ -23,7 +23,7 @@ $ir = [
         "name" => "L0"
     ],
 
-    // if i <= 5 goto L1
+    // if i <= 10 goto L1
 
     [
         "op" => "IF_GOTO",
@@ -37,24 +37,44 @@ $ir = [
             ],
             "right" => [
                 "type" => "CONST",
-                "value" => 5
+                "value" => 10
             ]
         ],
         "label" => "L1"
     ],
 
-    // goto L2
+    // goto exit
 
     [
         "op" => "GOTO",
-        "label" => "L2"
+        "label" => "L_EXIT"
     ],
 
-    // L1:
+    // body
 
     [
         "op" => "LABEL",
         "name" => "L1"
+    ],
+
+    // if i == 5 goto break
+
+    [
+        "op" => "IF_GOTO",
+        "condition" => [
+            "type" => "BINARY",
+            "op" => "==",
+            "left" => [
+                "type" => "VAR",
+                "name" => "i",
+                "offset" => -16
+            ],
+            "right" => [
+                "type" => "CONST",
+                "value" => 5
+            ]
+        ],
+        "label" => "L_BREAK"
     ],
 
     // print(i)
@@ -68,6 +88,13 @@ $ir = [
                 "offset" => -16
             ]
         ]
+    ],
+
+    // continue target
+
+    [
+        "op" => "LABEL",
+        "name" => "L_CONTINUE"
     ],
 
     // i = i + 1
@@ -91,18 +118,35 @@ $ir = [
         ]
     ],
 
-    // goto L0
+    // goto condition
 
     [
         "op" => "GOTO",
         "label" => "L0"
     ],
 
-    // L2:
+    // break target
 
     [
         "op" => "LABEL",
-        "name" => "L2"
+        "name" => "L_BREAK"
+    ],
+
+    [
+        "op" => "PRINT",
+        "values" => [
+            [
+                "type" => "STRING",
+                "value" => "BREAK EJECUTADO"
+            ]
+        ]
+    ],
+
+    // exit
+
+    [
+        "op" => "LABEL",
+        "name" => "L_EXIT"
     ]
 ];
 
