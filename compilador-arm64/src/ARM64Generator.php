@@ -470,23 +470,109 @@ class ARM64Generator
                 $expr['offset']
             );
 
+            $dimensions =
+                $expr['dimensions']
+                ?? [];
+
+            $indices =
+                $expr['indices']
+                ?? [];
+
             $this->comment(
                 "ARRAY ACCESS $arrayName"
             );
 
             // =====================================
-            // INDEX
+            // LINEARIZED INDEX
             // =====================================
 
-            $indexExpr = $expr['indices'][0];
-
+            // first index
             $this->generateExpr(
-                $indexExpr
+                $indices[0]
             );
 
-            // w0 = index
+            // result in w0
 
-            // multiply by sizeof(int32)
+            // multidimensional
+            if (count($indices) > 1) {
+
+                for (
+                    $i = 1;
+                    $i < count($indices);
+                    $i++
+                ) {
+
+                    // stride
+                    $stride = 1;
+
+                    for (
+                        $j = $i;
+                        $j < count($dimensions);
+                        $j++
+                    ) {
+
+                        $stride *=
+                            $dimensions[$j];
+                    }
+
+                    // w0 *= stride
+                    $this->emit(
+                        "    mov w1, #$stride"
+                    );
+
+                    $this->emit(
+                        "    mul w0, w0, w1"
+                    );
+
+                    // evaluate next index
+                    $this->generateExpr(
+                        $indices[$i]
+                    );
+
+                    // preserve next index
+                    $this->emit(
+                        "    mov w2, w0"
+                    );
+
+                    // restore previous linear part
+                    // (temporary stack spill)
+
+                    $temp = $this->allocTemp();
+
+                    $this->emitStoreW(
+                        "w2",
+                        $temp
+                    );
+
+                    // recompute previous
+                    $this->generateExpr(
+                        $indices[0]
+                    );
+
+                    $this->emit(
+                        "    mov w1, #$stride"
+                    );
+
+                    $this->emit(
+                        "    mul w0, w0, w1"
+                    );
+
+                    $this->emitLoadW(
+                        "w2",
+                        $temp
+                    );
+
+                    // add next dimension
+                    $this->emit(
+                        "    add w0, w0, w2"
+                    );
+                }
+            }
+
+            // =====================================
+            // SCALE BY ELEMENT SIZE
+            // =====================================
+
             $this->emit(
                 "    lsl w0, w0, #2"
             );
@@ -500,9 +586,22 @@ class ARM64Generator
             // BASE ADDRESS
             // =====================================
 
-            $this->emit(
-                "    sub x2, x29, #$baseOffset"
-            );
+            if ($baseOffset <= 255) {
+
+                $this->emit(
+                    "    sub x2, x29, #$baseOffset"
+                );
+
+            } else {
+
+                $this->emit(
+                    "    mov x2, #$baseOffset"
+                );
+
+                $this->emit(
+                    "    sub x2, x29, x2"
+                );
+            }
 
             $this->emit(
                 "    add x2, x2, x1"
@@ -1474,22 +1573,89 @@ class ARM64Generator
             $instruction['offset']
         );
 
+        $dimensions =
+            $instruction['dimensions']
+            ?? [];
+
+        $indices =
+            $instruction['indices']
+            ?? [];
+
         // =====================================
-        // INDEX
+        // LINEARIZED INDEX
         // =====================================
 
+        // first index
         $this->generateExpr(
-            $instruction['index']
+            $indices[0]
         );
 
-        // w0 = index
+        // multidimensional
+        if (count($indices) > 1) {
 
-        // multiply index by 4
+            for (
+                $i = 1;
+                $i < count($indices);
+                $i++
+            ) {
+
+                // stride
+                $stride = 1;
+
+                for (
+                    $j = $i;
+                    $j < count($dimensions);
+                    $j++
+                ) {
+
+                    $stride *=
+                        $dimensions[$j];
+                }
+
+                // preserve previous result
+                $temp = $this->allocTemp();
+
+                $this->emitStoreW(
+                    "w0",
+                    $temp
+                );
+
+                // load previous
+                $this->emitLoadW(
+                    "w1",
+                    $temp
+                );
+
+                // multiply by stride
+                $this->emit(
+                    "    mov w2, #$stride"
+                );
+
+                $this->emit(
+                    "    mul w1, w1, w2"
+                );
+
+                // evaluate next index
+                $this->generateExpr(
+                    $indices[$i]
+                );
+
+                // add
+                $this->emit(
+                    "    add w0, w1, w0"
+                );
+            }
+        }
+
+        // =====================================
+        // SCALE BY ELEMENT SIZE
+        // =====================================
+
         $this->emit(
             "    lsl w0, w0, #2"
         );
 
-        // preserve index offset
+        // preserve byte offset
         $this->emit(
             "    mov x1, x0"
         );
@@ -1502,15 +1668,31 @@ class ARM64Generator
             $instruction['value']
         );
 
-        // w0 = value
-
-        // =====================================
-        // ADDRESS
-        // =====================================
-
+        // preserve value
         $this->emit(
-            "    sub x2, x29, #$baseOffset"
+            "    mov w3, w0"
         );
+
+        // =====================================
+        // BASE ADDRESS
+        // =====================================
+
+        if ($baseOffset <= 255) {
+
+            $this->emit(
+                "    sub x2, x29, #$baseOffset"
+            );
+
+        } else {
+
+            $this->emit(
+                "    mov x2, #$baseOffset"
+            );
+
+            $this->emit(
+                "    sub x2, x29, x2"
+            );
+        }
 
         $this->emit(
             "    add x2, x2, x1"
@@ -1521,7 +1703,7 @@ class ARM64Generator
         // =====================================
 
         $this->emit(
-            "    str w0, [x2]"
+            "    str w3, [x2]"
         );
     }
 

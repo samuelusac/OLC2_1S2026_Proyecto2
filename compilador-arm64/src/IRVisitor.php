@@ -487,10 +487,6 @@ class IRVisitor extends GolampiBaseVisitor
 
         if (!$symbol) {
 
-            // $this->errorManager->add(
-            //     "Semántico",
-            //     "Arreglo no definido: $name"
-            // );
             $this->semanticError(
                 $ctx,
                 "Arreglo no definido: $name"
@@ -504,13 +500,38 @@ class IRVisitor extends GolampiBaseVisitor
         $indices = [];
 
         foreach ($ctx->expr() as $exprCtx) {
-            $indices[] = $this->visit($exprCtx);
+
+            $indices[] = $this->visit(
+                $exprCtx
+            );
         }
 
+        // =====================================
+        // TYPE INFO
+        // =====================================
+
+        $arrayType = $symbol['type'] ?? [];
+
+        $dimensions =
+            $arrayType['dimensions']
+            ?? [];
+
+        $baseType =
+            $arrayType['baseType']
+            ?? 'int32';
+
         return [
+
             "type" => "ARRAY_ACCESS",
+
             "array" => $name,
+
             "indices" => $indices,
+
+            "dimensions" => $dimensions,
+
+            "baseType" => $baseType,
+
             "offset" => $symbol['offset'] ?? null
         ];
     }
@@ -519,7 +540,6 @@ class IRVisitor extends GolampiBaseVisitor
     {
         $name = $ctx->ID()->getText();
 
-        // buscar símbolo
         $symbol = $this->symbolTable->lookup($name);
 
         if (!$symbol) {
@@ -534,21 +554,36 @@ class IRVisitor extends GolampiBaseVisitor
             ];
         }
 
-        // =====================================
-        // INDEX
-        // =====================================
-
-        $indexExpr = $this->visit(
-            $ctx->expr(0)
-        );
+        $allExprs = $ctx->expr();
 
         // =====================================
-        // VALUE
+        // LAST EXPR = VALUE
         // =====================================
 
         $valueExpr = $this->visit(
-            $ctx->expr(1)
+            $allExprs[count($allExprs) - 1]
         );
+
+        // =====================================
+        // PREVIOUS EXPRS = INDICES
+        // =====================================
+
+        $indices = [];
+
+        for (
+            $i = 0;
+            $i < count($allExprs) - 1;
+            $i++
+        ) {
+
+            $indices[] = $this->visit(
+                $allExprs[$i]
+            );
+        }
+
+        $arrayType =
+            $symbol['type']
+            ?? [];
 
         return [
 
@@ -558,10 +593,74 @@ class IRVisitor extends GolampiBaseVisitor
 
             "offset" => $symbol['offset'] ?? 0,
 
-            "index" => $indexExpr,
+            "indices" => $indices,
+
+            "dimensions" =>
+                $arrayType['dimensions']
+                ?? [],
+
+            "baseType" =>
+                $arrayType['baseType']
+                ?? 'int32',
 
             "value" => $valueExpr
         ];
+    }
+
+    public function visitArrayLiteral($ctx)
+    {
+        $type = $this->visit(
+            $ctx->arrayType()
+        );
+
+        $values = [];
+
+        $elementsCtx = $ctx->arrayElements();
+
+        if ($elementsCtx) {
+
+            $this->flattenArrayElements(
+                $elementsCtx,
+                $values
+            );
+        }
+
+        return [
+
+            "type" => "ARRAY_LITERAL",
+
+            "arrayType" => $type,
+
+            "values" => $values
+        ];
+    }
+
+    private function flattenArrayElements(
+        $ctx,
+        array &$values
+    ): void {
+
+        foreach ($ctx->arrayElement() as $element) {
+
+            // nested array
+            if ($element->arrayElements()) {
+
+                $this->flattenArrayElements(
+                    $element->arrayElements(),
+                    $values
+                );
+
+                continue;
+            }
+
+            // normal expr
+            if ($element->expr()) {
+
+                $values[] = $this->visit(
+                    $element->expr()
+                );
+            }
+        }
     }
 
     public function visitWhileStmt($ctx)
@@ -702,10 +801,126 @@ class IRVisitor extends GolampiBaseVisitor
                 && ($type['kind'] ?? '') === 'array'
             ) {
 
-                // arrays solo reservan espacio
-                // no generan ASSIGN
+                // =====================================
+                // ARRAY WITH LITERAL INITIALIZATION
+                // =====================================
 
-                continue;
+                if (
+                    $value !== null
+                    && ($value['type'] ?? '') === 'ARRAY_LITERAL'
+                ) {
+
+                    foreach ($value['values'] as $index => $elementValue) {
+
+                        $instructions[] = [
+
+                            "op" => "ARRAY_ASSIGN",
+
+                            "name" => $name,
+
+                            "offset" => $offset,
+
+                            "index" => [
+
+                                "type" => "CONST",
+
+                                "value" => strval($index)
+                            ],
+
+                            "value" => $elementValue
+                        ];
+                    }
+                }
+
+                if (
+                    is_array($type)
+                    && ($type['kind'] ?? '') === 'array'
+                ) {
+
+                    // =====================================
+                    // ARRAY LITERAL INITIALIZATION
+                    // =====================================
+
+                    if (
+                        $value !== null
+                        && ($value['type'] ?? '') === 'ARRAY_LITERAL'
+                    ) {
+
+                        foreach ($value['values'] as $index => $elementValue) {
+
+                            $instructions[] = [
+
+                                "op" => "ARRAY_ASSIGN",
+
+                                "name" => $name,
+
+                                "offset" => $offset,
+
+                                "indices" => [
+                                    [
+                                        "type" => "CONST",
+                                        "value" => strval($index)
+                                    ]
+                                ],
+
+                                "dimensions" =>
+                                    $type['dimensions'] ?? [],
+
+                                "baseType" =>
+                                    $type['baseType'] ?? 'int32',
+
+                                "value" => $elementValue
+                            ];
+                        }
+
+                    } else {
+
+                        // =====================================
+                        // ZERO INITIALIZATION
+                        // =====================================
+
+                        $count = 1;
+
+                        foreach (
+                            $type['dimensions'] as $dim
+                        ) {
+
+                            $count *= $dim;
+                        }
+
+                        for ($index = 0; $index < $count; $index++) {
+
+                            $instructions[] = [
+
+                                "op" => "ARRAY_ASSIGN",
+
+                                "name" => $name,
+
+                                "offset" => $offset,
+
+                                "indices" => [
+                                    [
+                                        "type" => "CONST",
+                                        "value" => strval($index)
+                                    ]
+                                ],
+
+                                "dimensions" =>
+                                    $type['dimensions'] ?? [],
+
+                                "baseType" =>
+                                    $type['baseType'] ?? 'int32',
+
+                                "value" => [
+                                    "type" => "CONST",
+                                    "value" => "0"
+                                ]
+                            ];
+                        }
+                    }
+
+                    continue;
+                }
             }
 
             // =====================================
@@ -799,6 +1014,98 @@ class IRVisitor extends GolampiBaseVisitor
             // =====================================
             // IR
             // =====================================
+
+            // =====================================
+// ARRAY
+// =====================================
+
+            if (
+                is_array($type)
+                && ($type['kind'] ?? '') === 'array'
+            ) {
+
+                // =====================================
+                // ARRAY LITERAL INITIALIZATION
+                // =====================================
+
+                if (
+                    $value !== null
+                    && ($value['type'] ?? '') === 'ARRAY_LITERAL'
+                ) {
+
+                    foreach ($value['values'] as $index => $elementValue) {
+
+                        $instructions[] = [
+
+                            "op" => "ARRAY_ASSIGN",
+
+                            "name" => $name,
+
+                            "offset" => $offset,
+
+                            "indices" => [
+                                [
+                                    "type" => "CONST",
+                                    "value" => strval($index)
+                                ]
+                            ],
+
+                            "dimensions" =>
+                                $type['dimensions'] ?? [],
+
+                            "baseType" =>
+                                $type['baseType'] ?? 'int32',
+
+                            "value" => $elementValue
+                        ];
+                    }
+
+                } else {
+
+                    // zero init
+
+                    $count = 1;
+
+                    foreach (
+                        $type['dimensions'] as $dim
+                    ) {
+
+                        $count *= $dim;
+                    }
+
+                    for ($index = 0; $index < $count; $index++) {
+
+                        $instructions[] = [
+
+                            "op" => "ARRAY_ASSIGN",
+
+                            "name" => $name,
+
+                            "offset" => $offset,
+
+                            "indices" => [
+                                [
+                                    "type" => "CONST",
+                                    "value" => strval($index)
+                                ]
+                            ],
+
+                            "dimensions" =>
+                                $type['dimensions'] ?? [],
+
+                            "baseType" =>
+                                $type['baseType'] ?? 'int32',
+
+                            "value" => [
+                                "type" => "CONST",
+                                "value" => "0"
+                            ]
+                        ];
+                    }
+                }
+
+                continue;
+            }
 
             $instructions[] = [
 
@@ -902,6 +1209,17 @@ class IRVisitor extends GolampiBaseVisitor
                     "kind" => "primitive",
                     "name" => "int32"
                 ];
+        }
+
+        // =====================================
+// ARRAY LITERAL
+// =====================================
+
+        if (
+            $expr['type'] === 'ARRAY_LITERAL'
+        ) {
+
+            return $expr['arrayType'];
         }
 
         // =====================================
@@ -1432,8 +1750,25 @@ class IRVisitor extends GolampiBaseVisitor
 
     public function visitLiteral($ctx)
     {
+        // =====================================
+        // ARRAY LITERAL
+        // =====================================
+
+        if ($ctx->arrayLiteral()) {
+
+            return $this->visit(
+                $ctx->arrayLiteral()
+            );
+        }
+
+        // =====================================
+        // NORMAL CONST
+        // =====================================
+
         return [
+
             "type" => "CONST",
+
             "value" => $ctx->getText()
         ];
     }

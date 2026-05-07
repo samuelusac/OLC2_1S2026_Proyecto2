@@ -223,7 +223,16 @@ arrayAccess
     ;
 
 arrayLiteral
-    : arrayType '{' exprList? '}'
+    : arrayType '{' arrayElements? '}'
+    ;
+
+arrayElements
+    : arrayElement (',' arrayElement)*
+    ;
+
+arrayElement
+    : expr
+    | '{' arrayElements? '}'
     ;
 
 literal
