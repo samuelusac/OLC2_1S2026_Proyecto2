@@ -35,12 +35,67 @@ statement
     | printStmt
     | arrayAssignment
     | constDecl
+    | switchStmt
+    | forStmt
+    | breakStmt
+    | continueStmt
+    | unaryUpdate
+    ;
+
+breakStmt
+    : 'break'
+    ;
+
+continueStmt
+    : 'continue'
+    ;
+
+forStmt
+    : forClassic
+    | forConditional
+    | forInfinite
+    ;
+
+forClassic
+    : 'for' forInit ';' expr ';' forUpdate block
+    ;
+
+forConditional
+    : 'for' expr block
+    ;
+forInfinite
+    : 'for' block
+    ;
+forInit
+    : shortVarDecl
+    | assignment
+    ;
+
+forUpdate
+    : assignment
+    | unaryUpdate
+    ;
+unaryUpdate
+    : ID '++'
+    | ID '--'
+    ;
+
+switchStmt
+    : 'switch' expr '{' switchCase* defaultCase? '}'
+    ;
+
+switchCase
+    : 'case' expr ':' statement*
+    ;
+
+defaultCase
+    : 'default' ':' statement*
     ;
 
 constDecl
     : 'const' ID type '=' expr
     ;
-    
+
 arrayAssignment
     : ID ('[' expr ']')+ '=' expr
     ;
@@ -78,7 +133,15 @@ shortVarDecl
     ;
     
 assignment
-    : ID '=' expr
+    : ID assignOp expr
+    ;
+
+assignOp
+    : '='
+    | '+='
+    | '-='
+    | '*='
+    | '/='
     ;
 
 type
