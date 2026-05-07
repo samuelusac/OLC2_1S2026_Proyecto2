@@ -146,6 +146,114 @@ class ARM64Generator
 
             return;
         }
+
+        // =====================================
+        // BINARY
+        // =====================================
+
+        if ($expr['type'] === 'BINARY') {
+
+            $op = $expr['op'];
+
+            $this->comment("BEGIN BINARY OPERATION ($op)");
+
+            // =========================
+            // LEFT OPERAND
+            // =========================
+
+            $this->comment("evaluate left operand");
+
+            $this->generateExpr($expr['left']);
+
+            $this->comment("push left operand");
+
+            // guardar left temporal
+            $this->emit("    str w0, [sp, #-16]!");
+
+
+            // =========================
+            // RIGHT OPERAND
+            // =========================
+
+            $this->comment("evaluate right operand");
+
+            $this->generateExpr($expr['right']);
+
+            // right -> w0
+
+            $this->comment("pop left operand into w1");
+
+            // recuperar left
+            $this->emit("    ldr w1, [sp], #16");
+
+
+            // =========================
+            // OPERATIONS
+            // =========================
+
+            switch ($op) {
+
+                case '+':
+
+                    $this->comment("w0 = w1 + w0");
+
+                    $this->emit(
+                        "    add w0, w1, w0"
+                    );
+
+                    break;
+
+                case '-':
+
+                    $this->comment("w0 = w1 - w0");
+
+                    $this->emit(
+                        "    sub w0, w1, w0"
+                    );
+
+                    break;
+
+                case '*':
+
+                    $this->comment("w0 = w1 * w0");
+
+                    $this->emit(
+                        "    mul w0, w1, w0"
+                    );
+
+                    break;
+
+                case '/':
+
+                    $this->comment("w0 = w1 / w0");
+
+                    $this->emit(
+                        "    sdiv w0, w1, w0"
+                    );
+
+                    break;
+
+                case '%':
+
+                    $this->comment("w2 = w1 / w0");
+
+                    $this->emit(
+                        "    sdiv w2, w1, w0"
+                    );
+
+                    $this->comment("w0 = w1 - (w2 * w0)");
+
+                    $this->emit(
+                        "    msub w0, w2, w0, w1"
+                    );
+
+                    break;
+            }
+
+            $this->comment("END BINARY OPERATION ($op)");
+
+            return;
+        }
     }
 
     private function generateAssign(array $instruction): void
@@ -158,31 +266,26 @@ class ARM64Generator
         // COMMENT
         // =====================================
 
-        if ($value['type'] === 'CONST') {
-
-            $this->comment(
-                $instruction['name'] . " := " . $value['value']
-            );
-        }
+        $this->comment(
+            $instruction['name'] . " := expr"
+        );
 
         // =====================================
-        // CONST INTEGER
+        // GENERATE EXPRESSION
+        // resultado queda en w0
         // =====================================
 
-        if (
-            $value['type'] === 'CONST'
-            && is_numeric($value['value'])
-        ) {
+        $this->generateExpr($value);
 
-            $this->generateExpr($value);
+        // =====================================
+        // STORE RESULT
+        // =====================================
 
-            // guardar en stack
-            $this->emit(
-                "    str w0, [x29, #-$offset]"
-            );
+        $this->emit(
+            "    str w0, [x29, #-$offset]"
+        );
 
-            $this->emit("");
-        }
+        $this->emit("");
     }
 
     private function generatePrint(array $instruction): void

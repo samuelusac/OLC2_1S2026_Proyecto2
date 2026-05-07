@@ -6,11 +6,62 @@ $ir = [
 
     [
         "op" => "ASSIGN",
-        "name" => "x",
+        "name" => "a",
         "offset" => -16,
         "value" => [
             "type" => "CONST",
-            "value" => 42
+            "value" => 10
+        ]
+    ],
+
+    [
+        "op" => "ASSIGN",
+        "name" => "b",
+        "offset" => -20,
+        "value" => [
+            "type" => "CONST",
+            "value" => 20
+        ]
+    ],
+
+    [
+        "op" => "ASSIGN",
+        "name" => "c",
+        "offset" => -24,
+        "value" => [
+            "type" => "CONST",
+            "value" => 5
+        ]
+    ],
+
+    [
+        "op" => "ASSIGN",
+        "name" => "r",
+        "offset" => -28,
+        "value" => [
+            "type" => "BINARY",
+            "op" => "*",
+
+            "left" => [
+                "type" => "BINARY",
+                "op" => "+",
+                "left" => [
+                    "type" => "VAR",
+                    "name" => "a",
+                    "offset" => -16
+                ],
+                "right" => [
+                    "type" => "VAR",
+                    "name" => "b",
+                    "offset" => -20
+                ]
+            ],
+
+            "right" => [
+                "type" => "VAR",
+                "name" => "c",
+                "offset" => -24
+            ]
         ]
     ],
 
@@ -19,8 +70,8 @@ $ir = [
         "values" => [
             [
                 "type" => "VAR",
-                "name" => "x",
-                "offset" => -16
+                "name" => "r",
+                "offset" => -28
             ]
         ]
     ]
