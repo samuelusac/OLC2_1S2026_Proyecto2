@@ -116,9 +116,9 @@ try {
                 // GENERAR ASM
                 // =====================================
 
-                $generator = new ARM64Generator();
+                // $generator = new ARM64Generator();
 
-                $asm = $generator->generate($ir);
+                // $asm = $generator->generate($ir);
 
 
                 // =====================================

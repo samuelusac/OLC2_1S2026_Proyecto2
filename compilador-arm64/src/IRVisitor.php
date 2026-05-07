@@ -583,7 +583,7 @@ class IRVisitor extends GolampiBaseVisitor
         }
 
         return [
-            "op" => "CALL",
+            "type" => "CALL",
             "name" => $name,
             "args" => $args
         ];
@@ -633,8 +633,9 @@ class IRVisitor extends GolampiBaseVisitor
             // ]);
 
             $instructions[] = [
-                "op" => "DECLARE",
+                "op" => "ASSIGN",
                 "name" => $name,
+                "offset" => $offset,
                 "varType" => $type,
                 "value" => $value
             ];
@@ -683,10 +684,11 @@ class IRVisitor extends GolampiBaseVisitor
             // ]);
 
             $instructions[] = [
-                "op" => "DECLARE",
+                "op" => "ASSIGN",
                 "name" => $name,
                 "varType" => "infer",
-                "value" => $value
+                "value" => $value,
+                "offset" => $offset
             ];
         }
 

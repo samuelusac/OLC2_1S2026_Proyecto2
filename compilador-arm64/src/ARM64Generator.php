@@ -122,6 +122,17 @@ class ARM64Generator
             case 'IF_GOTO':
                 $this->generateIfGoto($instruction);
                 break;
+            case 'FUNCTION':
+                $this->generateFunction($instruction);
+                break;
+
+            case 'RETURN':
+                $this->generateReturn($instruction);
+                break;
+
+            case 'CALL':
+                $this->generateCall($instruction);
+                break;
         }
     }
 
@@ -469,6 +480,48 @@ class ARM64Generator
             $instruction['condition'],
             $label
         );
+
+        $this->emit("");
+    }
+
+    private function generateFunction(array $instruction): void
+    {
+        $name = $instruction['name'];
+
+        $this->emit("");
+
+        $this->emit(".global $name");
+
+        $this->emit("$name:");
+
+        // prologue
+
+        $this->emit("    stp x29, x30, [sp, -16]!");
+        $this->emit("    mov x29, sp");
+
+        $this->emit("    sub sp, sp, #256");
+
+        $this->emit("");
+    }
+
+    private function generateReturn(array $instruction): void
+    {
+        $this->comment("return");
+
+        // evaluar expresión
+        $this->generateExpr(
+            $instruction['value']
+        );
+
+        // resultado ya quedó en w0
+
+        // epilogue
+
+        $this->emit("    add sp, sp, #256");
+
+        $this->emit("    ldp x29, x30, [sp], 16");
+
+        $this->emit("    ret");
 
         $this->emit("");
     }

@@ -9,7 +9,7 @@ program
     ;
 
 functionDecl
-    : 'func' ID '(' parameterList? ')' block
+    : 'func' ID '(' parameterList? ')' returnType? block
     ;
 
 parameterList
@@ -18,6 +18,10 @@ parameterList
 
 parameter
     : ID type
+    ;
+
+returnType
+    : type
     ;
 
 block
@@ -134,6 +138,7 @@ shortVarDecl
     
 assignment
     : ID assignOp expr
+    | arrayAccess assignOp expr
     ;
 
 assignOp
@@ -207,13 +212,24 @@ unaryExpr
     ;
 
 primaryExpr
-    : '(' expr ')'
+    : functionCall
+    | arrayAccess
+    | '(' expr ')'
     | literal
     | ID
     ;
 
+arrayAccess
+    : ID ('[' expr ']')+
+    ;
+
+arrayLiteral
+    : arrayType '{' exprList? '}'
+    ;
+
 literal
-    : INT
+    : arrayLiteral
+    | INT
     | FLOAT
     | STRING
     | BOOL
