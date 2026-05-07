@@ -165,22 +165,39 @@ class ARM64Generator
 
             $offset = ($index + 1) * 8;
 
-            $register = "w$index";
-
             $this->comment(
                 "store parameter " . $param['name']
             );
 
-            $this->emit(
-                "    str $register, [x29, #-$offset]"
-            );
+            // =====================================
+            // ARRAY PARAMETER = POINTER
+            // =====================================
+
+            if (
+                is_array($param['type'])
+                && (($param['type']['kind'] ?? '') === 'array')
+            ) {
+
+                $register = "x$index";
+
+                $this->emit(
+                    "    str $register, [x29, #-$offset]"
+                );
+
+            } else {
+
+                $register = "w$index";
+
+                $this->emit(
+                    "    str $register, [x29, #-$offset]"
+                );
+            }
         }
 
         if (!empty($function['params'])) {
 
             $this->emit("");
         }
-
         // =====================================
         // BODY
         // =====================================
@@ -386,8 +403,8 @@ class ARM64Generator
             }
 
             // =====================================
-// FLOAT CONST (fake support)
-// =====================================
+            // FLOAT CONST (fake support)
+            // =====================================
 
             if (
                 is_string($expr['value'])
@@ -459,8 +476,8 @@ class ARM64Generator
         }
 
         // =====================================
-// ARRAY ACCESS
-// =====================================
+        // ARRAY ACCESS
+        // =====================================
 
         if ($expr['type'] === 'ARRAY_ACCESS') {
 
@@ -586,30 +603,64 @@ class ARM64Generator
             // BASE ADDRESS
             // =====================================
 
-            if ($baseOffset <= 255) {
+            // array parameter = pointer
+            if ($expr['isParam'] ?? false) {
 
-                $this->emit(
-                    "    sub x2, x29, #$baseOffset"
-                );
+                if ($baseOffset <= 255) {
+
+                    $this->emit(
+                        "    ldr x2, [x29, #-$baseOffset]"
+                    );
+
+                } else {
+
+                    $this->emit(
+                        "    mov x9, #$baseOffset"
+                    );
+
+                    $this->emit(
+                        "    sub x9, x29, x9"
+                    );
+
+                    $this->emit(
+                        "    ldr x2, [x9]"
+                    );
+                }
 
             } else {
 
-                $this->emit(
-                    "    mov x2, #$baseOffset"
-                );
+                // local array
 
-                $this->emit(
-                    "    sub x2, x29, x2"
-                );
+                if ($baseOffset <= 255) {
+
+                    $this->emit(
+                        "    sub x2, x29, #$baseOffset"
+                    );
+
+                } else {
+
+                    $this->emit(
+                        "    mov x2, #$baseOffset"
+                    );
+
+                    $this->emit(
+                        "    sub x2, x29, x2"
+                    );
+                }
             }
+
+            // =====================================
+            // LOAD
+            // =====================================
+            // =====================================
+            // FINAL ADDRESS
+            // =====================================
 
             $this->emit(
                 "    add x2, x2, x1"
             );
 
-            // =====================================
-            // LOAD
-            // =====================================
+
 
             $this->emit(
                 "    ldr w0, [x2]"
@@ -658,10 +709,56 @@ class ARM64Generator
                     "evaluate argument $index"
                 );
 
-                // resultado queda en w0
+                // =====================================
+                // ARRAY ARGUMENT
+                // =====================================
+
+                if (
+                    ($arg['type'] ?? '') === 'VAR'
+                    && is_array($arg['varType'] ?? null)
+                    && (($arg['varType']['kind'] ?? '') === 'array')
+                ) {
+
+                    $baseOffset = abs(
+                        $arg['offset']
+                    );
+
+                    // x0 = &array
+
+                    if ($baseOffset <= 255) {
+
+                        $this->emit(
+                            "    sub x0, x29, #$baseOffset"
+                        );
+
+                    } else {
+
+                        $this->emit(
+                            "    mov x9, #$baseOffset"
+                        );
+
+                        $this->emit(
+                            "    sub x0, x29, x9"
+                        );
+                    }
+
+                    // store pointer temp
+                    $offset = 200 + ($index * 8);
+
+                    $this->emitStoreX(
+                        "x0",
+                        $offset
+                    );
+
+                    continue;
+                }
+
+                // =====================================
+                // NORMAL ARGUMENT
+                // =====================================
+
                 $this->generateExpr($arg);
 
-                // guardar temporalmente
                 $offset = 200 + ($index * 8);
 
                 $this->emitStoreW(
@@ -682,10 +779,24 @@ class ARM64Generator
                     "load argument $index into w$index"
                 );
 
-                $this->emitLoadW(
-                    "w$index",
-                    $offset
-                );
+                if (
+                    ($arg['type'] ?? '') === 'VAR'
+                    && is_array($arg['varType'] ?? null)
+                    && (($arg['varType']['kind'] ?? '') === 'array')
+                ) {
+
+                    $this->emitLoadX(
+                        "x$index",
+                        $offset
+                    );
+
+                } else {
+
+                    $this->emitLoadW(
+                        "w$index",
+                        $offset
+                    );
+                }
             }
 
             // =====================================
@@ -1552,7 +1663,7 @@ class ARM64Generator
 
         // epilogue
 
-        $this->emit("    add sp, sp, #256");
+        $this->emit("    add sp, sp, #16384");
 
         $this->emit("    ldp x29, x30, [sp], 16");
 

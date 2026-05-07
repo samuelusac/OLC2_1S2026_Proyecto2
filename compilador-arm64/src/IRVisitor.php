@@ -532,7 +532,9 @@ class IRVisitor extends GolampiBaseVisitor
 
             "baseType" => $baseType,
 
-            "offset" => $symbol['offset'] ?? null
+            "offset" => $symbol['offset'] ?? null,
+            "isParam" =>
+                ($symbol['kind'] ?? '') === 'parameter'
         ];
     }
 
@@ -1704,7 +1706,9 @@ class IRVisitor extends GolampiBaseVisitor
 
                 "offset" => $symbol["offset"] ?? 0,
 
-                "varType" => $symbol["type"] ?? "int32"
+                "varType" => $symbol["type"] ?? "int32",
+                "isParam" =>
+                    ($symbol['kind'] ?? '') === 'parameter'
             ];
         }
 
